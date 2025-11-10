@@ -30,7 +30,6 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -58,10 +57,7 @@ public class ResponseCache {
 
   public ResponseCache(Config config) {
     this.cache = new HashMap<>();
-    this.dir =
-        Paths.get(
-            "/home/nima/Desktop/logs/db_cache/"
-                + (config.isTestMode ? "Test" : config.benchmarkName));
+    this.dir = config.globalDir.resolve("response_cache");
     File dir = this.dir.toFile();
     Pattern pattern = Pattern.compile("^(\\d+)\\.txt$");
     File[] files = dir.listFiles();

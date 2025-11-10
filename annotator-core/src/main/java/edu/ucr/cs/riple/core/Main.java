@@ -85,8 +85,6 @@ public class Main {
   // Benchmarks
   static final Map<String, Benchmark> benchmarks;
 
-  public static final Path PROMPTS_PATH = Paths.get("/home/nima/Desktop/new-prompts.txt");
-
   static {
     benchmarks = new HashMap<>();
     benchmarks.put("libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava"));
@@ -140,14 +138,14 @@ public class Main {
     if (benchmark == null) {
       throw new IllegalArgumentException("Unknown benchmark: " + benchmarkName);
     }
-    String PROJECT_PATH = "/home/nima/Developer/nullness-benchmarks/" + benchmark.path;
+    String PROJECT_PATH = "/home/joos/projects/nullrepair/nullness-benchmarks/" + benchmark.path;
     deleteOutDir(benchmark);
     String[] argsArray = {
       "-d",
       String.format("%s/annotator-out", PROJECT_PATH),
       "-bc",
       String.format(
-          "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/home/nima/Android/Sdk ./gradlew %s",
+          "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk ./gradlew %s",
           PROJECT_PATH, benchmark.buildCommand),
       "-cp",
       String.format("%s/paths.tsv", PROJECT_PATH),
@@ -208,7 +206,7 @@ public class Main {
   }
 
   public static void deleteOutDir(Benchmark benchmark) {
-    String PROJECT_PATH = "/home/nima/Developer/nullness-benchmarks/" + benchmark.path;
+    String PROJECT_PATH = "/home/joos/projects/nullrepair/nullness-benchmarks/" + benchmark.path;
     // delete dir
     Path outDir = Paths.get(PROJECT_PATH + "/annotator-out/0");
     if (outDir.toFile().exists()) {
