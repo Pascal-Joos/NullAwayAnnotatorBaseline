@@ -122,16 +122,28 @@ public class Main {
     System.out.println("ANNOTATOR VERSION: " + VERSION + ", BUILD: " + BUILD_VERSION);
     System.out.println("Received arguments: " + String.join(", ", args));
     String benchmarkName = args[0];
-    boolean isBaseline = args.length > 1 && args[1].equals("basic");
+    boolean isSimpleBaseline = args.length > 1 && args[1].equals("basic");
+    boolean isAgentBaseline = args.length > 1 && args[1].equals("agent_baseline");
     boolean isDisabled = args.length > 1 && args[1].equals("disable");
     boolean verbose = Arrays.asList(args).contains("verbose");
     boolean combined = Arrays.asList(args).contains("--combined");
     System.clearProperty("ANNOTATOR_TEST_MODE");
+    String mode;
+    if (isDisabled) {
+      mode = "disabled";
+    } else if (isSimpleBaseline) {
+      mode = "basic";
+    } else if (isAgentBaseline) {
+      mode = "agent_baseline";
+    } else {
+      mode = "advanced";
+    }
+
     System.out.println(
         "Running "
             + benchmarkName
             + " benchmark in "
-            + (isDisabled ? "disabled" : (isBaseline ? "basic" : "advanced"))
+            + mode
             + " mode."
             + (combined ? " Combined mode is ON." : ""));
     Benchmark benchmark = benchmarks.get(benchmarkName);
@@ -159,7 +171,7 @@ public class Main {
       benchmark.annotatedPackage,
       isDisabled ? "" : "-di", // deactivate inference
       "-rrem", // resolve remaining errors
-      isDisabled ? "disabled" : isBaseline ? "basic" : "advanced",
+      mode,
       // "-rboserr", // redirect build output stream and error stream
       verbose ? "-rboserr" : "",
       "--depth",

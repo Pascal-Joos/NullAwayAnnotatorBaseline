@@ -34,6 +34,7 @@ import edu.ucr.cs.riple.core.Main;
 import edu.ucr.cs.riple.core.checkers.CheckerBaseClass;
 import edu.ucr.cs.riple.core.checkers.DiagnosticPosition;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix;
+import edu.ucr.cs.riple.core.checkers.nullaway.codefix.AgentBaselineNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.BasicNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.NullAwayCodeFix;
@@ -377,10 +378,14 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
   public void resolveRemainingErrors() {
     long timer = System.currentTimeMillis();
     Utility.buildTarget(context);
+
     NullAwayCodeFix codeFix =
         config.resolveRemainingErrorMode.isAdvanced()
             ? new AdvancedNullAwayCodeFix(context)
-            : new BasicNullAwayCodeFix(context);
+            : config.resolveRemainingErrorMode.isBasic()
+                ? new BasicNullAwayCodeFix(context)
+                : new AgentBaselineNullAwayCodeFix(context);
+
     Set<NullAwayError> remainingErrors = deserializeErrors(context.targetModuleInfo);
     // initialize commit file:
     if (config.actualRunEnabled()) {

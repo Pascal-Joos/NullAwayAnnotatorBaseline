@@ -217,6 +217,7 @@ public class Config {
     DISABLED,
     SUPPRESS,
     BASIC,
+    AGENT_BASELINE,
     ADVANCED;
 
     /**
@@ -237,6 +238,8 @@ public class Config {
           return SUPPRESS;
         case "basic":
           return BASIC;
+        case "agent_baseline":
+          return AGENT_BASELINE;
         case "advanced":
           return ADVANCED;
         default:
@@ -272,6 +275,15 @@ public class Config {
     }
 
     /**
+     * Returns true if the mode is {@link ResolveRemainingErrorMode#AGENT_BASELINE}.
+     *
+     * @return true if the mode is {@link ResolveRemainingErrorMode#AGENT_BASELINE}.
+     */
+    public boolean isAgentBaseline() {
+      return this == AGENT_BASELINE;
+    }
+
+    /**
      * Returns true if the mode is {@link ResolveRemainingErrorMode#ADVANCED}.
      *
      * @return true if the mode is {@link ResolveRemainingErrorMode#ADVANCED}.
@@ -282,13 +294,14 @@ public class Config {
 
     /**
      * Returns true if the mode is {@link ResolveRemainingErrorMode#BASIC} or {@link
-     * ResolveRemainingErrorMode#ADVANCED}. This means that the mode is resolution.
+     * ResolveRemainingErrorMode#ADVANCED} or {@link ResolveRemainingErrorMode#AGENT_BASELINE}. This
+     * means that the mode is resolution.
      *
      * @return true if the mode is {@link ResolveRemainingErrorMode#BASIC} or {@link
-     *     ResolveRemainingErrorMode#ADVANCED}.
+     *     ResolveRemainingErrorMode#ADVANCED} or {@link ResolveRemainingErrorMode#AGENT_BASELINE}.
      */
     public boolean isResolution() {
-      return this == ADVANCED || this == BASIC;
+      return this == ADVANCED || this == BASIC || this == AGENT_BASELINE;
     }
   }
 
@@ -497,7 +510,7 @@ public class Config {
             "rrem",
             "resolve-remaining-errors-mode",
             true,
-            "Resolves remaining errors mode [DISABLED, SUPPRESS, BASIC, ADVANCED].");
+            "Resolves remaining errors mode [DISABLED, SUPPRESS, BASIC, AGENT_BASELINE, ADVANCED].");
     resolveRemainingErrorsOption.setRequired(false);
     options.addOption(resolveRemainingErrorsOption);
 
