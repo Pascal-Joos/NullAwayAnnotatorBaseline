@@ -59,6 +59,12 @@ public class ResponseCache {
     this.cache = new HashMap<>();
     this.dir = config.globalDir.resolve("response_cache");
     File dir = this.dir.toFile();
+    // Ensure the response_cache directory exists so reads/writes won't fail.
+    try {
+      Files.createDirectories(this.dir);
+    } catch (java.io.IOException e) {
+      throw new RuntimeException("Could not create response_cache directory: " + this.dir, e);
+    }
     Pattern pattern = Pattern.compile("^(\\d+)\\.txt$");
     File[] files = dir.listFiles();
     if (files == null) {
