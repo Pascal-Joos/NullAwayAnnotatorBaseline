@@ -1,3 +1,8 @@
+## Instructions for Agentic Baseline
+
+The baseline mini-swe-agent is included as git submodule.
+After cloning the project and checking out this branch, additionally run: ```git submodule update --init --recursive```.
+
 
 ## NullAwayAnnotator  ![Build Status](https://github.com/nimakarimipour/NullAwayAnnotator/actions/workflows/continuous-integration.yml/badge.svg)
 
