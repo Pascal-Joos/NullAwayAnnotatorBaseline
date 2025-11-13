@@ -384,7 +384,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
             ? new AdvancedNullAwayCodeFix(context)
             : config.resolveRemainingErrorMode.isBasic()
                 ? new BasicNullAwayCodeFix(context)
-                : new AgentBaselineNullAwayCodeFix(context);
+                : new AgentBaselineNullAwayCodeFix(context, config.benchmarkPath);
 
     Set<NullAwayError> remainingErrors = deserializeErrors(context.targetModuleInfo);
     // initialize commit file:
@@ -438,6 +438,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                                   context, context.targetModuleInfo, NullAwayError.class)
                               .size();
                       try {
+                        // AgentBaselineNullAwayCodeFix returns an empty set of changes, as the
+                        // agent makes modifications to the code directly.
                         changes = codeFix.fix(error);
                         System.out.println("Finished processing.");
                       } catch (Exception e) {
