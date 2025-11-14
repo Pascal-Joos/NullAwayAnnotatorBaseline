@@ -7,8 +7,14 @@ After cloning the project and checking out this branch, additionally run: ```git
 
 #### Building the NullAwayAnnotator
 
+Java 17 is required and expected to be located at /usr/lib/jvm/java-1.17.0-openjdk-amd64, set JAVA_HOME respectively.  
+
 The NullRepair and baseline setup requires NullAway at version `0.12.4-SNAPSHOT` from this [repo](https://github.com/nimakarimipour/NullAway.git) built at this commit: `d0c7d8390964ee5dc95d6bf93ae76b85913b2342`.  
-To do so, clone the repository, checkout the commit and run:  
+To do so, clone the repository and checkout the commit.  
+
+NullAway requires the android-sdk, and we expect it to be located at /usr/lib/android-sdk.  
+Also, for running the build the licenses for used android-sdk packages need to be accepted.  
+Then run the build with:  
 ```bash
 ./gradlew build -x test
 ./gradlew publishToMavenLocal
