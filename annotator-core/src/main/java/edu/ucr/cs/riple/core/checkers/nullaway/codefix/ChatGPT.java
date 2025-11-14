@@ -345,8 +345,7 @@ public class ChatGPT {
     // Try to read securely from the console first (no echo), fall back to stdin.
     java.io.Console console = System.console();
     if (console != null) {
-      char[] pw =
-          console.readPassword("OPENAI_KEY not set. Please enter your OpenAI API key: ");
+      char[] pw = console.readPassword("OPENAI_KEY not set. Please enter your OpenAI API key: ");
       if (pw != null) {
         openAiApiKey = new String(pw).trim();
         if (!openAiApiKey.isEmpty()) {
