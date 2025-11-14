@@ -303,15 +303,74 @@ public class ChatGPT {
   }
 
   /**
-   * This method retrieves the API key from the local machine environment variable. This mechanism
-   * should be changed in future and ask the user to provide a key, or use a different mechanism to
-   * store the key. For now, it is fine to use this method so we don't have to expose the API key in
-   * the code.
+   * This method retrieves the API key from the local machine environment variable. If no API key is
+   * found, it prompts the user to enter one. The API key is then not saved however.
    *
    * @return the API key.
    */
   private static String retrieveApiKey() {
-    return System.getenv("OPENAI_KEY").trim();
+
+    String openAiApiKey = retrieveAPIKeyFromSystemEnv();
+
+    if (!openAiApiKey.isEmpty()) {
+      return openAiApiKey;
+    }
+
+    openAiApiKey = retrieveAPIKeyFromUserInput();
+    if (!openAiApiKey.isEmpty()) {
+      return openAiApiKey;
+    }
+
+    throw new IllegalStateException(
+        "OpenAI API key not provided. Set OPENAI_KEY env variable or provide key on stdin.");
+  }
+
+  private static String retrieveAPIKeyFromSystemEnv() {
+
+    String openAiApiKey = System.getenv("OPENAI_KEY");
+    if (openAiApiKey != null) {
+      openAiApiKey = openAiApiKey.trim();
+      if (!openAiApiKey.isEmpty()) {
+        return openAiApiKey;
+      }
+    }
+    return "";
+  }
+
+  private static String retrieveAPIKeyFromUserInput() {
+
+    String openAiApiKey;
+
+    // Environment variable not set or empty -> ask the user
+    // Try to read securely from the console first (no echo), fall back to stdin.
+    java.io.Console console = System.console();
+    if (console != null) {
+      char[] pw =
+          console.readPassword("OPENAI_KEY not set. Please enter your OpenAI API key: ");
+      if (pw != null) {
+        openAiApiKey = new String(pw).trim();
+        if (!openAiApiKey.isEmpty()) {
+          return openAiApiKey;
+        }
+      }
+    } else {
+      System.out.print("OPENAI_KEY not set. Please enter your OpenAI API key: ");
+      try {
+        BufferedReader reader =
+            new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset()));
+        openAiApiKey = reader.readLine();
+        if (openAiApiKey != null) {
+          openAiApiKey = openAiApiKey.trim();
+          if (!openAiApiKey.isEmpty()) {
+            return openAiApiKey;
+          }
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to read API key from input", e);
+      }
+    }
+
+    return "";
   }
 
   /**
