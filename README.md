@@ -1,7 +1,54 @@
 ## Instructions for Agentic Baseline
 
+### Project setup
+
 The baseline mini-swe-agent is included as git submodule.
 After cloning the project and checking out this branch, additionally run: ```git submodule update --init --recursive```.
+
+#### Building the NullAwayAnnotator
+
+The NullRepair and baseline setup requires NullAway at version `0.12.4-SNAPSHOT` from this [repo](https://github.com/nimakarimipour/NullAway.git) built at this commit: `d0c7d8390964ee5dc95d6bf93ae76b85913b2342`.  
+To do so, clone the repository, checkout the commit and run:  
+```bash
+./gradlew build -x test
+./gradlew publishToMavenLocal
+```
+
+Next, go back to this project and build it:  
+```./gradlew build -x test```
+
+#### Initializing mini-swe-agent
+
+Create a virtual environment:  
+```python3 -m venv .venv```  
+Activate environment (needs to be reactivated in each new session):  
+```source .venv/bin/activate```  
+
+Install dependencies for mini-swe-agent:  
+```pip install -e mini-swe-agent-for-nullaway-codefix```  
+
+Configure mini-swe-agent with OPENAI_API_KEY:  
+```mini-extra config setup```  
+1. Choose any default model (e.g., openai/gpt-4o). This default will be ignored by the benchmark.  
+2. Enter the API key name for using OPENAI: OPENAI_API_KEY  
+3. Provide your API key value. 
+
+Then the configuration has been saved locally.
+
+### Running the benchmark
+
+In addition to setting the OpenAI key for mini-swe-agent the key also has to be set as a system environment variable:  
+```export OPENAI_KEY=...```  
+Watch out for the differing variable name here.  
+
+The target projects must be used with their specially setup branches for evaluation. See for example [https://github.com/Pascal-Joos/eureka](https://github.com/Pascal-Joos/eureka).  
+For running the benchmark the target project has to be cloned using ssh (or be configured to use ssh afterwards).  
+
+Then run either NullRepair (advanced), the basic baseline (basic), or the agentic baseline (agent_baseline).  
+Per default the project is reset for each error. Set --combined to stack successful error patches.  
+
+Example run:  
+```java -jar /home/joos/projects/nullrepair/NullAwayAnnotatorBaseline/annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka agent_baseline```
 
 
 ## NullAwayAnnotator  ![Build Status](https://github.com/nimakarimipour/NullAwayAnnotator/actions/workflows/continuous-integration.yml/badge.svg)
