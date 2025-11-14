@@ -21,6 +21,9 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
   /** Cost limit for the Agent. */
   private static final double AGENT_COST_LIMIT = 0.1;
 
+  /** Name of the model to use for the Agent. */
+  private static final String MODEL_NAME = "openai/gpt-4o";
+
   /** Prompt for the Agent. */
   private static final String AGENT_FIX_REQUEST_PROMPT =
       Utility.readResourceContent("prompts/agent-fix-request.txt");
@@ -70,6 +73,8 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
         new ProcessBuilder(
             "python3",
             "mini-swe-agent-for-nullaway-codefix/src/minisweagent/run/nullrepair_baseline.py",
+            "-m",
+            MODEL_NAME,
             "-d",
             this.benchmarkDirectoryPath,
             "-t",
