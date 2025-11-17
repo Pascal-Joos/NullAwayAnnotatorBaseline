@@ -531,6 +531,10 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                                 "Patch reduced errors from %d to %d, committing.%n", before, after);
                             git.stageAllChanges();
                             git.commitChanges("fix: " + error);
+                            String commitHash = git.getLatestCommitHash();
+                            TSVFiles.addRow(
+                                counter.get() + "\t" + error.toTSV() + "\t" + commitHash,
+                                config.commitHashPath);
                           } else {
                             logger.trace(
                                 "Patch did not reduced errors was {}, now is: {}, resetting.",

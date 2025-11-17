@@ -59,9 +59,6 @@ public class ChatGPT {
   /** The URL to send the request to ChatGPT. */
   private static final String URL = "https://api.openai.com/v1/chat/completions";
 
-  /** The model to use for the request from ChatGPT. */
-  private static final String MODEL = "gpt-4o";
-
   /** The API key to use for the request from ChatGPT. */
   private static final String API_KEY = retrieveApiKey();
 
@@ -226,7 +223,7 @@ public class ChatGPT {
    * @param prompt the prompt to ask ChatGPT.
    * @return the response from ChatGPT.
    */
-  private static String sendRequestToOpenAI(String prompt) {
+  private String sendRequestToOpenAI(String prompt) {
     System.out.println("Sending request to OpenAI...");
     try {
       // Making a POST request
@@ -242,7 +239,11 @@ public class ChatGPT {
       JsonArray messages = new JsonArray();
       messages.add(message);
       JsonObject requestBody = new JsonObject();
-      requestBody.addProperty("model", MODEL);
+
+      // Only keep the model name without the organization prefix
+      String modelName = context.config.modelName;
+      modelName = modelName.split("/")[modelName.split("/").length - 1];
+      requestBody.addProperty("model", modelName);
       requestBody.add("messages", messages);
       String body = requestBody.toString();
 

@@ -184,6 +184,9 @@ public class Config {
   public boolean isTestMode = System.getProperty("ANNOTATOR_TEST_MODE") != null;
   public boolean combined = false;
 
+  public String modelName = "openai/gpt-4o";
+  public double agentCostLimit = 0.5;
+
   public String branchName() {
     return (String.format("nimak/agentic-%s-%s", resolveRemainingErrorMode.name(), Main.VERSION)
             + (Main.DEBUG_MODE ? "-debug" : "")
