@@ -54,7 +54,7 @@ Then run either NullRepair (advanced), the basic baseline (basic), or the agenti
 Per default the project is reset for each error. Set --combined to stack successful error patches.  
 
 Example run:  
-```java -jar /home/joos/projects/nullrepair/NullAwayAnnotatorBaseline/annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka agent_baseline```
+```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka agent_baseline```
 
 
 ## NullAwayAnnotator  ![Build Status](https://github.com/nimakarimipour/NullAwayAnnotator/actions/workflows/continuous-integration.yml/badge.svg)
