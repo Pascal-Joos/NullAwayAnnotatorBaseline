@@ -440,7 +440,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       try {
                         // AgentBaselineNullAwayCodeFix returns an empty set of changes, as the
                         // agent makes modifications to the code directly.
-                        changes = codeFix.fix(error);
+                        changes = codeFix.fix(error, counter.get());
                         System.out.println("Finished processing.");
                       } catch (Exception e) {
                         changes = Set.of();

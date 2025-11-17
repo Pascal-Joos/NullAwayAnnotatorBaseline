@@ -39,8 +39,8 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
   }
 
   @Override
-  public Set<RegionRewrite> fix(NullAwayError error) {
-    fixUsingAgent(error, context);
+  public Set<RegionRewrite> fix(NullAwayError error, int errorId) {
+    fixUsingAgent(error, context, errorId);
     return Set.of();
   }
 
@@ -50,7 +50,7 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
    * @param error the error to fix.
    * @param context Annotator context.
    */
-  public void fixUsingAgent(NullAwayError error, Context context) {
+  public void fixUsingAgent(NullAwayError error, Context context, int errorId) {
 
     String region =
         "the "
@@ -82,7 +82,14 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
             "-y",
             "-l",
             Double.toString(AGENT_COST_LIMIT),
-            "--exit-immediately");
+            "--exit-immediately",
+            "-o",
+            context
+                .config
+                .logPath
+                .getParent()
+                .resolve("agent-log-" + errorId + ".traj.json")
+                .toString());
     logger.info("Invoking agent with command: {}", pb.command());
 
     Path projectRoot = Paths.get(System.getProperty("user.dir"));

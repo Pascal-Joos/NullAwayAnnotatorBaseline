@@ -70,9 +70,10 @@ public abstract class NullAwayCodeFix {
    * regions.
    *
    * @param error the error to fix.
+   * @param errorId the identifier of the error.
    * @return a set of {@link RegionRewrite} instances representing the code fix.
    */
-  public abstract Set<RegionRewrite> fix(NullAwayError error);
+  public abstract Set<RegionRewrite> fix(NullAwayError error, int errorId);
 
   /**
    * Applies the given {@link MethodRewriteChange} to the source code.

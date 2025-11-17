@@ -40,7 +40,7 @@ public class BasicNullAwayCodeFix extends NullAwayCodeFix {
   }
 
   @Override
-  public Set<RegionRewrite> fix(NullAwayError error) {
+  public Set<RegionRewrite> fix(NullAwayError error, int errorId) {
     return gpt.fixUsingBasicPrompt(error, context);
   }
 }
