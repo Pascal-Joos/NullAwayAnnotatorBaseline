@@ -66,7 +66,9 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
             error.path,
             error.position.lineNumber + 1,
             error.position.diagnosticLine,
-            region);
+            region,
+            infoOnMultipleErrorsInFile(error, context),
+            error.path.getFileName());
 
     // Invoke the mini-swe-agent Python script and pass the prompt via stdin.
     ProcessBuilder pb =
@@ -151,6 +153,20 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
         procRef.get().destroyForcibly();
       }
       Thread.currentThread().interrupt();
+    }
+  }
+
+  private String infoOnMultipleErrorsInFile(NullAwayError error, Context context) {
+    long count =
+        Utility.readErrorsFromOutputDirectory(
+                context, context.targetModuleInfo, NullAwayError.class)
+            .stream()
+            .filter(e -> e.path.equals(error.path))
+            .count();
+    if (count > 1) {
+      return "Note that there are a total of " + count + " NullAway errors reported in this file. ";
+    } else {
+      return "";
     }
   }
 }
