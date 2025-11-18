@@ -558,15 +558,28 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                         System.out.println("Running tests...");
                         try {
 
-                          // TODO: Save test logs
-                          int testsExitCode =
-                              Utility.executeCommand(
+                          Utility.CommandResult testResult =
+                              Utility.executeCommandAndCaptureOutput(
                                   config,
                                   String.format(
-                                      "cd %s && %s", config.benchmarkPath, config.testCommand),
-                                  true);
-                          if (testsExitCode != 0) {
+                                      "cd %s && %s", config.benchmarkPath, config.testCommand));
+                          if (testResult.exitCode != 0) {
                             failingTests = true;
+                          }
+
+                          // Save test logs to file
+                          try {
+                            Files.writeString(
+                                config
+                                    .logPath
+                                    .getParent()
+                                    .resolve(String.format("test-log-%d.log", counter.get())),
+                                String.format(
+                                    "====================\n%s\nTest Exit Code: %d\nTest Output:\n%s\n",
+                                    error, testResult.exitCode, testResult.output),
+                                Charset.defaultCharset());
+                          } catch (Exception e) {
+                            logger.trace("Error while writing test log to file: ", e);
                           }
                         } catch (Exception e) {
                           System.err.println("Error while running tests: " + e.getMessage());
