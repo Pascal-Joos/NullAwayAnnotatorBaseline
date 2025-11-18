@@ -95,6 +95,47 @@ public class Utility {
   }
 
   /**
+   * Executes a shell command and captures its output (stdout and stderr combined).
+   *
+   * @param config Annotator configuration.
+   * @param command The shell command to run.
+   * @return CommandResult containing the exit code and captured output.
+   */
+  public static CommandResult executeCommandAndCaptureOutput(Config config, String command) {
+    try {
+      ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", command);
+      pb.redirectErrorStream(true); // Merge stderr into stdout
+      Process process = pb.start();
+      
+      StringBuilder output = new StringBuilder();
+      try (InputStream inputStream = process.getInputStream();
+          java.io.BufferedReader reader = 
+              new java.io.BufferedReader(new java.io.InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          output.append(line).append("\n");
+        }
+      }
+      
+      int exitCode = process.waitFor();
+      return new CommandResult(exitCode, output.toString());
+    } catch (Exception e) {
+      throw new RuntimeException("Exception happened in executing command: " + command, e);
+    }
+  }
+
+  /** Result of executing a command, containing exit code and captured output. */
+  public static class CommandResult {
+    public final int exitCode;
+    public final String output;
+
+    public CommandResult(int exitCode, String output) {
+      this.exitCode = exitCode;
+      this.output = output;
+    }
+  }
+
+  /**
    * Writes reports content in json format in reports.json file in the output directory.
    *
    * @param context Annotator context.
