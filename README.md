@@ -41,6 +41,10 @@ Configure mini-swe-agent with OPENAI_API_KEY:
 
 Then the configuration has been saved locally.
 
+Then build the docker image for mini-swe-agent:  
+```docker build -t joos/minisweagent_for_nullrepair mini-swe-agent-for-nullaway-codefix/src/minisweagent/environments```
+
+
 ### Running the benchmark
 
 In addition to setting the OpenAI key for mini-swe-agent the key also has to be set as a system environment variable:  
