@@ -58,11 +58,14 @@ public class Main {
     public final String annotatedPackage;
     public final String path;
     public final String buildCommand;
+    public final String testCommand;
 
-    public Benchmark(String annotatedPackage, String path, String buildCommand) {
+    public Benchmark(
+        String annotatedPackage, String path, String buildCommand, String testCommand) {
       this.annotatedPackage = annotatedPackage;
       this.path = path;
       this.buildCommand = buildCommand;
+      this.testCommand = testCommand;
     }
 
     @Override
@@ -73,12 +76,13 @@ public class Main {
       Benchmark benchmark = (Benchmark) o;
       return Objects.equals(annotatedPackage, benchmark.annotatedPackage)
           && Objects.equals(path, benchmark.path)
-          && Objects.equals(buildCommand, benchmark.buildCommand);
+          && Objects.equals(buildCommand, benchmark.buildCommand)
+          && Objects.equals(testCommand, benchmark.testCommand);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(annotatedPackage, path, buildCommand);
+      return Objects.hash(annotatedPackage, path, buildCommand, testCommand);
     }
   }
 
@@ -87,28 +91,44 @@ public class Main {
 
   static {
     benchmarks = new HashMap<>();
-    benchmarks.put("libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava"));
-    benchmarks.put("zuul", new Benchmark("com.netflix", "zuul", "zuul-core:compileJava"));
     benchmarks.put(
-        "eureka", new Benchmark("com.netflix.eureka", "eureka", "eureka-core:compileJava"));
+        "libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava", "gdx:test"));
+    benchmarks.put(
+        "zuul", new Benchmark("com.netflix", "zuul", "zuul-core:compileJava", "zuul-core:test"));
+    benchmarks.put(
+        "eureka",
+        new Benchmark(
+            "com.netflix.eureka", "eureka", "eureka-core:compileJava", "eureka-core:test"));
     benchmarks.put(
         "conductor",
-        new Benchmark("com.netflix.conductor", "conductor", "conductor-core:compileJava"));
-    benchmarks.put("EventBus", new Benchmark("org.greenrobot.eventbus", "EventBus", "compileJava"));
+        new Benchmark(
+            "com.netflix.conductor",
+            "conductor",
+            "conductor-core:compileJava",
+            "conductor-core:test"));
     benchmarks.put(
-        "glide", new Benchmark("com.bumptech.glide", "glide", "library:compileDebugJavaWithJavac"));
-    benchmarks.put("jadx", new Benchmark("jadx.core", "jadx", "jadx-core:compileJava"));
+        "EventBus", new Benchmark("org.greenrobot.eventbus", "EventBus", "compileJava", "test"));
+    // TODO: Check if this test command is correct
     benchmarks.put(
-        "litiengine", new Benchmark("de.gurkenlabs.litiengine", "litiengine", "compileJava"));
-    benchmarks.put("retrofit", new Benchmark("retrofit2", "retrofit", "compileJava"));
+        "glide",
+        new Benchmark(
+            "com.bumptech.glide", "glide", "library:compileDebugJavaWithJavac", "library:test"));
+    benchmarks.put(
+        "jadx", new Benchmark("jadx.core", "jadx", "jadx-core:compileJava", "jadx-core:test"));
+    benchmarks.put(
+        "litiengine",
+        new Benchmark("de.gurkenlabs.litiengine", "litiengine", "compileJava", "test"));
+    benchmarks.put("retrofit", new Benchmark("retrofit2", "retrofit", "compileJava", "test"));
     benchmarks.put(
         "spring-boot",
         new Benchmark(
             "org.springframework.boot",
             "spring-boot",
-            ":spring-boot-project:spring-boot:compileJava"));
-    benchmarks.put("wala-util", new Benchmark("com.ibm.wala", "wala-util", "compileJava"));
-    benchmarks.put("gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava"));
+            ":spring-boot-project:spring-boot:compileJava",
+            ":spring-boot-project:spring-boot:test"));
+    benchmarks.put("wala-util", new Benchmark("com.ibm.wala", "wala-util", "compileJava", "test"));
+    benchmarks.put(
+        "gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava", ":gson:test"));
   }
 
   // PROJECT SPECIFIC CONFIGURATION
@@ -159,6 +179,10 @@ public class Main {
       String.format(
           "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk ./gradlew %s",
           PROJECT_PATH, benchmark.buildCommand),
+      "-tc",
+      String.format(
+          "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk ./gradlew %s -Derrorprone.disable=true",
+          PROJECT_PATH, benchmark.testCommand),
       "-cp",
       String.format("%s/paths.tsv", PROJECT_PATH),
       "-i",
@@ -298,6 +322,7 @@ public class Main {
           rootLogger.error("Uncaught exception in thread: {}", thread.getName(), throwable);
         });
     config.logPath = root.resolve("app.log");
+    config.metricsPath = root.resolve("metrics.tsv");
     config.commitHashPath = root.resolve("commits.tsv");
     config.timerPath = root.resolve("timers.tsv");
     // or WARN if too noisy

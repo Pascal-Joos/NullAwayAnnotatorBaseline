@@ -62,6 +62,7 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
             error.position.diagnosticLine,
             region,
             infoOnMultipleErrorsInFile(error, context),
+            context.config.buildCommand.substring(context.config.buildCommand.indexOf("./gradlew")),
             error.path.getFileName());
 
     // Invoke the mini-swe-agent Python script and pass the prompt via stdin.

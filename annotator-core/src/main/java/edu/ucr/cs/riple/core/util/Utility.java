@@ -72,10 +72,14 @@ public class Utility {
    * @param config Annotator configuration.
    * @param command The shell command to run.
    */
-  public static void executeCommand(Config config, String command) {
+  public static int executeCommand(Config config, String command) {
+    return executeCommand(config, command, false);
+  }
+
+  public static int executeCommand(Config config, String command, boolean redirectOutput) {
     try {
       ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", command);
-      if (config.redirectBuildOutputToStdErr) {
+      if (config.redirectBuildOutputToStdErr || redirectOutput) {
         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
       } else {
@@ -83,7 +87,8 @@ public class Utility {
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
         pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
       }
-      pb.start().waitFor();
+      int exitCode = pb.start().waitFor();
+      return exitCode;
     } catch (Exception e) {
       throw new RuntimeException("Exception happened in executing command: " + command, e);
     }

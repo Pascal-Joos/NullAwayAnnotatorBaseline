@@ -408,6 +408,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
             (region, nullAwayErrors) ->
                 nullAwayErrors.forEach(
                     error -> {
+                      long timerPerError = System.currentTimeMillis();
+
                       counter.incrementAndGet();
                       System.out.println(
                           counter.get() + " : TOP LEVEL CALL TO FIX ERROR: " + error);
@@ -459,6 +461,11 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                         }
                       }
                       codeFix.apply(changes);
+
+                      // Log time taken, excluding committing the changes and calculating metrics.
+                      long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
+                      System.out.println("Time taken to fix error: " + elapsedTimePerError + " ms");
+
                       if (!config.actualRunEnabled()) {
                         return;
                       }
@@ -499,31 +506,81 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                         logger.trace("Error while writing log to file: ", e);
                       }
 
-                      System.out.println("Trying to commit changes...");
-                      if (config.combined) {
-                        int after;
-                        try {
-                          context.targetModuleInfo.getModuleConfiguration().stream()
-                              .map(configuration -> configuration.dir.resolve("errors.json"))
-                              .forEach(
-                                  path -> {
-                                    try {
-                                      Files.deleteIfExists(path);
-                                    } catch (IOException e) {
-                                      throw new RuntimeException(e);
-                                    }
-                                  });
-                          Utility.buildTarget(context);
-                          after =
-                              Utility.readErrorsFromOutputDirectory(
-                                      context, context.targetModuleInfo, NullAwayError.class)
-                                  .size();
-                        } catch (Exception e) {
-                          System.out.println(
-                              "Patch caused compilation error, setting after to max value.");
-                          after = Integer.MAX_VALUE;
+                      boolean patchGenerated = false;
+                      boolean compilationErrorIntroduced = false;
+                      boolean targetErrorResolved = false;
+                      boolean triggeredNewErrors = false;
+                      boolean failingTests = false;
+
+                      System.out.println("Calculating run metrics...");
+
+                      int after;
+                      try {
+                        context.targetModuleInfo.getModuleConfiguration().stream()
+                            .map(configuration -> configuration.dir.resolve("errors.json"))
+                            .forEach(
+                                path -> {
+                                  try {
+                                    Files.deleteIfExists(path);
+                                  } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                  }
+                                });
+                        // Build target after applying the fix, to check for remaining errors.
+                        Utility.buildTarget(context);
+                        Set<NullAwayError> remainingNullAwayErrors =
+                            Utility.readErrorsFromOutputDirectory(
+                                context, context.targetModuleInfo, NullAwayError.class);
+                        after = remainingNullAwayErrors.size();
+
+                        // This equality check seems to be robust against moving lines in the error
+                        targetErrorResolved =
+                            remainingNullAwayErrors.stream().noneMatch(e -> e.equals(error));
+
+                        if (targetErrorResolved) {
+                          // target error removed implies already equality of after and before
+                          // indicates
+                          // triggering a new error, as expected would be before - 1
+                          triggeredNewErrors = after >= before;
+                        } else {
+                          triggeredNewErrors = after > before;
                         }
+
+                      } catch (Exception e) {
+                        System.out.println(
+                            "Patch caused compilation error, setting after to max value.");
+                        after = Integer.MAX_VALUE;
+                        compilationErrorIntroduced = true;
+                      }
+
+                      // Check if tests fail
+                      if (!config.combined && !compilationErrorIntroduced && success) {
+                        System.out.println("Running tests...");
+                        try {
+
+                          // TODO: Save test logs
+                          int testsExitCode =
+                              Utility.executeCommand(
+                                  config,
+                                  String.format(
+                                      "cd %s && %s", config.benchmarkPath, config.testCommand),
+                                  true);
+                          if (testsExitCode != 0) {
+                            failingTests = true;
+                          }
+                        } catch (Exception e) {
+                          System.err.println("Error while running tests: " + e.getMessage());
+                        }
+                      }
+
+                      System.out.println("Trying to commit changes...");
+
+                      if (config.combined) {
+
                         try (GitUtility git = GitUtility.instance(config)) {
+                          if (git.hasChangesToCommit()) {
+                            patchGenerated = true;
+                          }
                           if (after < before) {
                             logger.trace(
                                 "Patch reduced errors from {} to {}, committing.", before, after);
@@ -548,11 +605,12 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                         } catch (Exception ex) {
                           System.err.println("Error while resetting: " + ex.getMessage());
                         }
-                        return;
+
                       } else {
                         if (success) {
                           try (GitUtility git = GitUtility.instance(config)) {
                             if (git.hasChangesToCommit()) {
+                              patchGenerated = true;
                               System.out.println("Pushing changes to git...");
                               git.stageAllChanges();
                               git.commitChanges(
@@ -574,12 +632,69 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                           }
                         }
                       }
+
+                      logMetricsForCreatedFix(
+                          config.combined,
+                          counter.get(),
+                          patchGenerated,
+                          compilationErrorIntroduced,
+                          targetErrorResolved,
+                          triggeredNewErrors,
+                          elapsedTimePerError,
+                          failingTests);
                     }));
     long elapsed = System.currentTimeMillis() - timer;
     if (config.actualRunEnabled()) {
       TSVFiles.initialize(config.timerPath, "TIME_IN_MILLIS");
       TSVFiles.addRow(String.valueOf(elapsed), config.timerPath);
     }
+  }
+
+  private void logMetricsForCreatedFix(
+      boolean combinedMode,
+      int id,
+      boolean patchGenerated,
+      boolean compilationErrorIntroduced,
+      boolean targetErrorResolved,
+      boolean triggeredNewErrors,
+      long elapsedTimePerError,
+      boolean failingTests) {
+
+    String metricsHeader;
+    String row;
+    if (combinedMode) {
+
+      metricsHeader =
+          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS";
+      row =
+          String.format(
+              "%d\t%b\t%b\t%b\t%b\t%d",
+              id,
+              patchGenerated,
+              compilationErrorIntroduced,
+              targetErrorResolved,
+              triggeredNewErrors,
+              elapsedTimePerError);
+    } else {
+      metricsHeader =
+          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tFAILING_TESTS";
+      row =
+          String.format(
+              "%d\t%b\t%b\t%b\t%b\t%d\t%b",
+              id,
+              patchGenerated,
+              compilationErrorIntroduced,
+              targetErrorResolved,
+              triggeredNewErrors,
+              elapsedTimePerError,
+              failingTests);
+    }
+
+    if (Files.notExists(config.metricsPath)) {
+      TSVFiles.initialize(config.metricsPath, metricsHeader);
+    }
+
+    TSVFiles.addRow(row, config.metricsPath);
   }
 
   @Override

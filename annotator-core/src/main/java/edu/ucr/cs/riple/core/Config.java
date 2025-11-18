@@ -106,6 +106,9 @@ public class Config {
   /** Command to build the target module. */
   public final String buildCommand;
 
+  /** Command to test the target module. */
+  public final String testCommand;
+
   /** Fully qualified name of the {@code nullable} annotation. */
   public final String nullableAnnot;
 
@@ -179,6 +182,7 @@ public class Config {
   public String benchmarkPath;
   public String benchmarkName;
   public Path logPath;
+  public Path metricsPath;
   public Path commitHashPath;
   public Path timerPath;
   public boolean isTestMode = System.getProperty("ANNOTATOR_TEST_MODE") != null;
@@ -331,6 +335,13 @@ public class Config {
             "Command to build the target project, this command must include changing directory from root to the target project");
     buildCommandOption.setRequired(true);
     options.addOption(buildCommandOption);
+
+    // Test
+    // Build
+    Option testCommandOption =
+        new Option("tc", "test-command", true, "Command to test the target project");
+    testCommandOption.setRequired(true);
+    options.addOption(testCommandOption);
 
     // Context Path
     Option configPath =
@@ -555,6 +566,7 @@ public class Config {
         "cmd cannot be null at this point, as that will cause CommandLineParser.parse to throw ParseException, and the handler above should stop execution in that case.");
 
     this.buildCommand = cmd.getOptionValue(buildCommandOption.getLongOpt());
+    this.testCommand = cmd.getOptionValue(testCommandOption.getLongOpt());
     this.nullableAnnot =
         cmd.hasOption(nullableOption.getLongOpt())
             ? cmd.getOptionValue(nullableOption.getLongOpt())
@@ -692,6 +704,7 @@ public class Config {
             .orElse(Collections.emptyList());
     this.target = moduleConfigurationList.get(0);
     this.buildCommand = parser.getValueFromKey("BUILD_COMMAND").orElse(null).getAsString();
+    this.testCommand = parser.getValueFromKey("TEST_COMMAND").orElse(null).getAsString();
     this.downStreamDependenciesAnalysisActivated =
         parser
             .getValueFromKey("DOWNSTREAM_DEPENDENCY_ANALYSIS:ACTIVATION")
