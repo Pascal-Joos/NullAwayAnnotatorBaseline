@@ -189,7 +189,7 @@ public class Config {
   public boolean combined = false;
 
   public String modelName = "openai/gpt-4o";
-  public double agentCostLimit = 0.5;
+  public double agentCostLimit = 0.005;
 
   public String branchName() {
     return (String.format("nimak/agentic-%s-%s", resolveRemainingErrorMode.name(), Main.VERSION)
