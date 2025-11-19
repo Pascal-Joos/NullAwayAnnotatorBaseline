@@ -32,7 +32,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
-import edu.ucr.cs.riple.annotator.util.io.TSVFiles;
 import edu.ucr.cs.riple.core.util.GitUtility;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
