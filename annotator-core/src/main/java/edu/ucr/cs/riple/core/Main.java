@@ -234,8 +234,6 @@ public class Main {
       git.stageAllChanges();
       git.commitChanges("Done");
       git.pushChanges();
-      String commitHash = git.getLatestCommitHash();
-      TSVFiles.addRow(1 + "\t" + "combined" + "\t" + commitHash, config.commitHashPath);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
