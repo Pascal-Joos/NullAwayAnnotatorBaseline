@@ -466,229 +466,245 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
                       System.out.println("Time taken to fix error: " + elapsedTimePerError + " ms");
 
-                      if (!config.actualRunEnabled()) {
-                        return;
+                      if (config.actualRunEnabled()) {
+                        long currentLineNumber = Utility.getLineCountOfFile(config.logPath);
+                        String log =
+                            Utility.getLinesFromFile(
+                                config.logPath, previousLineNumber.get(), currentLineNumber);
+                        previousLineNumber.set(currentLineNumber);
+
+                        postProcessFixedError(
+                            error, before, elapsedTimePerError, counter, log, success);
                       }
-
-                      if (success) {
-                        Utility.executeCommand(
-                            config,
-                            String.format(
-                                "cd %s && ./gradlew spotlessApply", config.benchmarkPath));
-                      }
-
-                      System.out.println("Writing log to file...");
-                      long currentLineNumber = Utility.getLineCountOfFile(config.logPath);
-                      String log =
-                          Utility.getLinesFromFile(
-                              config.logPath, previousLineNumber.get(), currentLineNumber);
-                      previousLineNumber.set(currentLineNumber);
-                      try {
-                        // Don't write to the target benchmark anymore for now, to prevent polluting
-                        // the agent.
-                        // Log is still saved to the logpath.
-                        // Files.writeString(
-                        //    Paths.get(
-                        //        config.benchmarkPath + String.format("/log-%d.log",
-                        // counter.get())),
-                        //    String.format("====================\n%s\nLog:\n%s\n", error, log),
-                        //    Charset.defaultCharset());
-
-                        // write to filesystem
-                        Files.writeString(
-                            config
-                                .logPath
-                                .getParent()
-                                .resolve(String.format("log-%d.log", counter.get())),
-                            String.format("====================\n%s\nLog:\n%s\n", error, log),
-                            Charset.defaultCharset());
-                      } catch (Exception e) {
-                        logger.trace("Error while writing log to file: ", e);
-                      }
-
-                      boolean patchGenerated = false;
-                      boolean targetErrorResolved = false;
-
-                      // These three metrics are mutually exclusive, but they could all three be
-                      // false even if patchGenerated is true (patch without effect). They can only
-                      // be true if patchGenerated is true.
-                      boolean compilationErrorIntroduced = false;
-                      boolean targetErrorResolvedWithoutNewErrors = false;
-                      boolean triggeredNewErrors = false;
-
-                      boolean failingTests = false;
-
-                      System.out.println("Calculating run metrics...");
-
-                      try (GitUtility git = GitUtility.instance(config)) {
-                        if (success && git.hasChangesToCommit()) {
-                          patchGenerated = true;
-                        }
-                      } catch (Exception ex) {
-                        System.err.println("Error while checking git changes: " + ex.getMessage());
-                      }
-
-                      int after = Integer.MAX_VALUE;
-
-                      if (patchGenerated) {
-
-                        try {
-                          context.targetModuleInfo.getModuleConfiguration().stream()
-                              .map(configuration -> configuration.dir.resolve("errors.json"))
-                              .forEach(
-                                  path -> {
-                                    try {
-                                      Files.deleteIfExists(path);
-                                    } catch (IOException e) {
-                                      throw new RuntimeException(e);
-                                    }
-                                  });
-                          // Build target after applying the fix, to check for remaining errors.
-                          Utility.buildTarget(context);
-
-                        } catch (Exception e) {
-                          System.out.println(
-                              "Patch caused compilation error, setting after to max value.");
-                          after = Integer.MAX_VALUE;
-                          compilationErrorIntroduced = true;
-                        }
-
-                        if (!compilationErrorIntroduced) {
-                          Set<NullAwayError> remainingNullAwayErrors =
-                              Utility.readErrorsFromOutputDirectory(
-                                  context, context.targetModuleInfo, NullAwayError.class);
-                          after = remainingNullAwayErrors.size();
-
-                          // This equality check seems to be robust against moving lines in the
-                          // error
-                          targetErrorResolved =
-                              remainingNullAwayErrors.stream().noneMatch(e -> e.equals(error));
-
-                          if (targetErrorResolved) {
-                            // target error removed implies already equality of after and before
-                            // indicates
-                            // triggering a new error, as expected would be before - 1
-                            triggeredNewErrors = after >= before;
-                          } else {
-                            triggeredNewErrors = after > before;
-                          }
-
-                          if (targetErrorResolved && !triggeredNewErrors) {
-                            targetErrorResolvedWithoutNewErrors = true;
-                          }
-                        }
-
-                        // Check if tests fail, only if no compilation error is introduced
-                        if (!config.combined && !compilationErrorIntroduced) {
-                          System.out.println("Running tests...");
-                          try {
-
-                            Utility.CommandResult testResult =
-                                Utility.executeCommandAndCaptureOutput(
-                                    config,
-                                    String.format(
-                                        "cd %s && %s", config.benchmarkPath, config.testCommand));
-                            if (testResult.exitCode != 0) {
-                              failingTests = true;
-                            }
-
-                            // Save test logs to file
-                            try {
-                              Files.writeString(
-                                  config
-                                      .logPath
-                                      .getParent()
-                                      .resolve(String.format("test-log-%d.log", counter.get())),
-                                  String.format(
-                                      "====================\n%s\nTest Exit Code: %d\nTest Output:\n%s\n",
-                                      error, testResult.exitCode, testResult.output),
-                                  Charset.defaultCharset());
-                            } catch (Exception e) {
-                              logger.trace("Error while writing test log to file: ", e);
-                            }
-                          } catch (Exception e) {
-                            System.err.println("Error while running tests: " + e.getMessage());
-                          }
-                        }
-                      }
-
-                      System.out.println("Trying to commit changes...");
-
-                      if (config.combined) {
-
-                        try (GitUtility git = GitUtility.instance(config)) {
-                          if (patchGenerated) {
-                            if (after < before) {
-                              logger.trace(
-                                  "Patch reduced errors from {} to {}, committing.", before, after);
-                              System.out.printf(
-                                  "Patch reduced errors from %d to %d, committing.%n",
-                                  before, after);
-                              git.stageAllChanges();
-                              git.commitChanges("fix: " + error);
-                              String commitHash = git.getLatestCommitHash();
-                              TSVFiles.addRow(
-                                  counter.get() + "\t" + error.toTSV() + "\t" + commitHash,
-                                  config.commitHashPath);
-                            } else {
-                              logger.trace(
-                                  "Patch did not reduced errors was {}, now is: {}, resetting.",
-                                  before,
-                                  after);
-                              System.out.printf(
-                                  "Patch did not reduced errors was %d, now is: %d, resetting.%n",
-                                  before, after);
-                              git.resetHard();
-                            }
-                          } else {
-                            logger.trace("No patch generated, nothing to commit.");
-                            System.out.println("No patch generated, nothing to commit.");
-                            git.resetHard();
-                          }
-                        } catch (Exception ex) {
-                          System.err.println("Error while resetting: " + ex.getMessage());
-                        }
-
-                      } else {
-                        if (success) {
-                          try (GitUtility git = GitUtility.instance(config)) {
-                            System.out.println("Pushing changes to git...");
-                            git.stageAllChanges();
-                            git.commitChanges(
-                                String.format(
-                                    "fix: %d - %s - %s - %s",
-                                    counter.get(),
-                                    error.messageType,
-                                    error.position.diagnosticLine.trim(),
-                                    error.message));
-                            git.pushChanges();
-                            String commitHash = git.getLatestCommitHash();
-                            TSVFiles.addRow(
-                                counter.get() + "\t" + error.toTSV() + "\t" + commitHash,
-                                config.commitHashPath);
-                            git.revertLastCommit();
-
-                          } catch (Exception ex) {
-                            System.err.println("Error while pushing changes: " + ex.getMessage());
-                          }
-                        }
-                      }
-
-                      logMetricsForCreatedFix(
-                          config.combined,
-                          counter.get(),
-                          patchGenerated,
-                          compilationErrorIntroduced,
-                          targetErrorResolved,
-                          targetErrorResolvedWithoutNewErrors,
-                          triggeredNewErrors,
-                          elapsedTimePerError,
-                          failingTests);
                     }));
     long elapsed = System.currentTimeMillis() - timer;
     if (config.actualRunEnabled()) {
       TSVFiles.initialize(config.timerPath, "TIME_IN_MILLIS");
       TSVFiles.addRow(String.valueOf(elapsed), config.timerPath);
+    }
+  }
+
+  /**
+   * Post processing steps: - Write log file. - Caculate run metrics including tests - Commit
+   * changes
+   */
+  private void postProcessFixedError(
+      NullAwayError error,
+      int before,
+      long elapsedTimePerError,
+      AtomicInteger counter,
+      String log,
+      boolean success) {
+
+    if (success) {
+      Utility.executeCommand(
+          config, String.format("cd %s && ./gradlew spotlessApply", config.benchmarkPath));
+    }
+
+    writeLogFile(error, counter, log);
+
+    boolean patchGenerated = false;
+    boolean targetErrorResolved = false;
+
+    // These three metrics are mutually exclusive, but they could all three be
+    // false even if patchGenerated is true (patch without effect). They can only
+    // be true if patchGenerated is true.
+    boolean compilationErrorIntroduced = false;
+    boolean targetErrorResolvedWithoutNewErrors = false;
+    boolean triggeredNewErrors = false;
+
+    boolean failingTests = false;
+
+    System.out.println("Calculating run metrics...");
+
+    try (GitUtility git = GitUtility.instance(config)) {
+      if (success && git.hasChangesToCommit()) {
+        patchGenerated = true;
+      }
+    } catch (Exception ex) {
+      System.err.println("Error while checking git changes: " + ex.getMessage());
+    }
+
+    int after = Integer.MAX_VALUE;
+
+    if (patchGenerated) {
+
+      try {
+        context.targetModuleInfo.getModuleConfiguration().stream()
+            .map(configuration -> configuration.dir.resolve("errors.json"))
+            .forEach(
+                path -> {
+                  try {
+                    Files.deleteIfExists(path);
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                });
+        // Build target after applying the fix, to check for remaining errors.
+        Utility.buildTarget(context);
+
+      } catch (Exception e) {
+        System.out.println("Patch caused compilation error, setting after to max value.");
+        after = Integer.MAX_VALUE;
+        compilationErrorIntroduced = true;
+      }
+
+      if (!compilationErrorIntroduced) {
+        Set<NullAwayError> remainingNullAwayErrors =
+            Utility.readErrorsFromOutputDirectory(
+                context, context.targetModuleInfo, NullAwayError.class);
+        after = remainingNullAwayErrors.size();
+
+        // This equality check seems to be robust against moving lines in the
+        // error
+        targetErrorResolved = remainingNullAwayErrors.stream().noneMatch(e -> e.equals(error));
+
+        if (targetErrorResolved) {
+          // target error removed implies already equality of after and before
+          // indicates
+          // triggering a new error, as expected would be before - 1
+          triggeredNewErrors = after >= before;
+        } else {
+          triggeredNewErrors = after > before;
+        }
+
+        if (targetErrorResolved && !triggeredNewErrors) {
+          targetErrorResolvedWithoutNewErrors = true;
+        }
+      }
+
+      failingTests = checkForTestFailures(error, counter, compilationErrorIntroduced);
+    }
+
+    commitChanges(error, counter, before, after, success, patchGenerated);
+
+    logMetricsForCreatedFix(
+        config.combined,
+        counter.get(),
+        patchGenerated,
+        compilationErrorIntroduced,
+        targetErrorResolved,
+        targetErrorResolvedWithoutNewErrors,
+        triggeredNewErrors,
+        elapsedTimePerError,
+        failingTests);
+  }
+
+  private void writeLogFile(NullAwayError error, AtomicInteger counter, String log) {
+    System.out.println("Writing log to file...");
+    try {
+      // Don't write to the target benchmark anymore for now, to prevent polluting
+      // the agent.
+      // Log is still saved to the logpath.
+      // Files.writeString(
+      //    Paths.get(
+      //        config.benchmarkPath + String.format("/log-%d.log",
+      // counter.get())),
+      //    String.format("====================\n%s\nLog:\n%s\n", error, log),
+      //    Charset.defaultCharset());
+
+      // write to filesystem
+      Files.writeString(
+          config.logPath.getParent().resolve(String.format("log-%d.log", counter.get())),
+          String.format("====================\n%s\nLog:\n%s\n", error, log),
+          Charset.defaultCharset());
+    } catch (Exception e) {
+      logger.trace("Error while writing log to file: ", e);
+    }
+  }
+
+  private boolean checkForTestFailures(
+      NullAwayError error, AtomicInteger counter, boolean compilationErrorIntroduced) {
+    boolean failingTests = false;
+    // Check if tests fail, only if no compilation error is introduced
+    if (!config.combined && !compilationErrorIntroduced) {
+      System.out.println("Running tests...");
+      try {
+
+        Utility.CommandResult testResult =
+            Utility.executeCommandAndCaptureOutput(
+                config, String.format("cd %s && %s", config.benchmarkPath, config.testCommand));
+        if (testResult.exitCode != 0) {
+          failingTests = true;
+        }
+
+        // Save test logs to file
+        try {
+          Files.writeString(
+              config.logPath.getParent().resolve(String.format("test-log-%d.log", counter.get())),
+              String.format(
+                  "====================\n%s\nTest Exit Code: %d\nTest Output:\n%s\n",
+                  error, testResult.exitCode, testResult.output),
+              Charset.defaultCharset());
+        } catch (Exception e) {
+          logger.trace("Error while writing test log to file: ", e);
+        }
+      } catch (Exception e) {
+        System.err.println("Error while running tests: " + e.getMessage());
+      }
+    }
+    return failingTests;
+  }
+
+  private void commitChanges(
+      NullAwayError error,
+      AtomicInteger counter,
+      int before,
+      int after,
+      boolean success,
+      boolean patchGenerated) {
+    System.out.println("Trying to commit changes...");
+
+    if (config.combined) {
+
+      try (GitUtility git = GitUtility.instance(config)) {
+        if (patchGenerated) {
+          if (after < before) {
+            logger.trace("Patch reduced errors from {} to {}, committing.", before, after);
+            System.out.printf("Patch reduced errors from %d to %d, committing.%n", before, after);
+            git.stageAllChanges();
+            git.commitChanges("fix: " + error);
+            String commitHash = git.getLatestCommitHash();
+            TSVFiles.addRow(
+                counter.get() + "\t" + error.toTSV() + "\t" + commitHash, config.commitHashPath);
+          } else {
+            logger.trace(
+                "Patch did not reduce errors was {}, now is: {}, resetting.", before, after);
+            System.out.printf(
+                "Patch did not reduce errors was %d, now is: %d, resetting.%n", before, after);
+            git.resetHard();
+          }
+        } else {
+          logger.trace("No patch generated, nothing to commit.");
+          System.out.println("No patch generated, nothing to commit.");
+          git.resetHard();
+        }
+      } catch (Exception ex) {
+        System.err.println("Error while resetting: " + ex.getMessage());
+      }
+
+    } else {
+      if (success) {
+        try (GitUtility git = GitUtility.instance(config)) {
+          System.out.println("Pushing changes to git...");
+          git.stageAllChanges();
+          git.commitChanges(
+              String.format(
+                  "fix: %d - %s - %s - %s",
+                  counter.get(),
+                  error.messageType,
+                  error.position.diagnosticLine.trim(),
+                  error.message));
+          git.pushChanges();
+          String commitHash = git.getLatestCommitHash();
+          TSVFiles.addRow(
+              counter.get() + "\t" + error.toTSV() + "\t" + commitHash, config.commitHashPath);
+          git.revertLastCommit();
+
+        } catch (Exception ex) {
+          System.err.println("Error while pushing changes: " + ex.getMessage());
+        }
+      }
     }
   }
 
