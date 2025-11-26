@@ -14,6 +14,7 @@ class BenchmarkStats:
     error_introducing_patches: int = 0
     resolving_patches: int = 0
     resolving_patches: int = 0
+    resolving_patches_and_no_new_errors: int = 0
     trigger_new_error_patches: int = 0
     failing_test_patches: int = 0
     total_execution_time_sec: float = 0.0
@@ -33,6 +34,9 @@ class BenchmarkStats:
 
         if patch.get("resolves_error"):
             self.resolving_patches += 1
+
+        if patch.get("resolves_error_and_no_new_errors"):
+            self.resolving_patches_and_no_new_errors += 1
 
         if patch.get("triggers_new_error"):
             self.trigger_new_error_patches += 1
@@ -138,6 +142,7 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
         patch_record["generated_patch"] = row.get("PATCH_GENERATED", "false").lower() == "true"
         patch_record["introduces_error"] = row.get("COMPILATION_ERROR_INTRODUCED", "false").lower() == "true"
         patch_record["resolves_error"] = row.get("TARGET_ERROR_RESOLVED", "false").lower() == "true"
+        patch_record["resolves_error_and_no_new_errors"] = (row.get("TARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS", "false").lower() == "true")
         patch_record["triggers_new_error"] = row.get("TRIGGERED_NEW_ERRORS", "false").lower() == "true"
         patch_record["has_failing_tests"] = row.get("FAILING_TESTS", "false").lower() == "true"
 
@@ -164,6 +169,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats])
         "generated_patches",
         "error_introducing_patches",
         "resolving_patches",
+        "resolving_patches_and_no_new_errors",
         "trigger_new_error_patches",
         "failing_test_patches",
         "total_execution_time_sec",
