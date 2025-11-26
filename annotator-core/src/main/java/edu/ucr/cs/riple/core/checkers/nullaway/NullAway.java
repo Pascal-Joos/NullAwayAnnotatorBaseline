@@ -507,82 +507,108 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       }
 
                       boolean patchGenerated = false;
-                      boolean compilationErrorIntroduced = false;
                       boolean targetErrorResolved = false;
+
+                      // These three metrics are mutually exclusive, but they could all three be
+                      // false even if patchGenerated is true (patch without effect). They can only
+                      // be true if patchGenerated is true.
+                      boolean compilationErrorIntroduced = false;
+                      boolean targetErrorResolvedWithoutNewErrors = false;
                       boolean triggeredNewErrors = false;
+
                       boolean failingTests = false;
 
                       System.out.println("Calculating run metrics...");
 
-                      int after;
-                      try {
-                        context.targetModuleInfo.getModuleConfiguration().stream()
-                            .map(configuration -> configuration.dir.resolve("errors.json"))
-                            .forEach(
-                                path -> {
-                                  try {
-                                    Files.deleteIfExists(path);
-                                  } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                  }
-                                });
-                        // Build target after applying the fix, to check for remaining errors.
-                        Utility.buildTarget(context);
-                        Set<NullAwayError> remainingNullAwayErrors =
-                            Utility.readErrorsFromOutputDirectory(
-                                context, context.targetModuleInfo, NullAwayError.class);
-                        after = remainingNullAwayErrors.size();
-
-                        // This equality check seems to be robust against moving lines in the error
-                        targetErrorResolved =
-                            remainingNullAwayErrors.stream().noneMatch(e -> e.equals(error));
-
-                        if (targetErrorResolved) {
-                          // target error removed implies already equality of after and before
-                          // indicates
-                          // triggering a new error, as expected would be before - 1
-                          triggeredNewErrors = after >= before;
-                        } else {
-                          triggeredNewErrors = after > before;
+                      try (GitUtility git = GitUtility.instance(config)) {
+                        if (success && git.hasChangesToCommit()) {
+                          patchGenerated = true;
                         }
-
-                      } catch (Exception e) {
-                        System.out.println(
-                            "Patch caused compilation error, setting after to max value.");
-                        after = Integer.MAX_VALUE;
-                        compilationErrorIntroduced = true;
+                      } catch (Exception ex) {
+                        System.err.println("Error while checking git changes: " + ex.getMessage());
                       }
 
-                      // Check if tests fail
-                      if (!config.combined && !compilationErrorIntroduced && success) {
-                        System.out.println("Running tests...");
+                      int after = Integer.MAX_VALUE;
+
+                      if (patchGenerated) {
+
                         try {
+                          context.targetModuleInfo.getModuleConfiguration().stream()
+                              .map(configuration -> configuration.dir.resolve("errors.json"))
+                              .forEach(
+                                  path -> {
+                                    try {
+                                      Files.deleteIfExists(path);
+                                    } catch (IOException e) {
+                                      throw new RuntimeException(e);
+                                    }
+                                  });
+                          // Build target after applying the fix, to check for remaining errors.
+                          Utility.buildTarget(context);
 
-                          Utility.CommandResult testResult =
-                              Utility.executeCommandAndCaptureOutput(
-                                  config,
-                                  String.format(
-                                      "cd %s && %s", config.benchmarkPath, config.testCommand));
-                          if (testResult.exitCode != 0) {
-                            failingTests = true;
-                          }
-
-                          // Save test logs to file
-                          try {
-                            Files.writeString(
-                                config
-                                    .logPath
-                                    .getParent()
-                                    .resolve(String.format("test-log-%d.log", counter.get())),
-                                String.format(
-                                    "====================\n%s\nTest Exit Code: %d\nTest Output:\n%s\n",
-                                    error, testResult.exitCode, testResult.output),
-                                Charset.defaultCharset());
-                          } catch (Exception e) {
-                            logger.trace("Error while writing test log to file: ", e);
-                          }
                         } catch (Exception e) {
-                          System.err.println("Error while running tests: " + e.getMessage());
+                          System.out.println(
+                              "Patch caused compilation error, setting after to max value.");
+                          after = Integer.MAX_VALUE;
+                          compilationErrorIntroduced = true;
+                        }
+
+                        if (!compilationErrorIntroduced) {
+                          Set<NullAwayError> remainingNullAwayErrors =
+                              Utility.readErrorsFromOutputDirectory(
+                                  context, context.targetModuleInfo, NullAwayError.class);
+                          after = remainingNullAwayErrors.size();
+
+                          // This equality check seems to be robust against moving lines in the
+                          // error
+                          targetErrorResolved =
+                              remainingNullAwayErrors.stream().noneMatch(e -> e.equals(error));
+
+                          if (targetErrorResolved) {
+                            // target error removed implies already equality of after and before
+                            // indicates
+                            // triggering a new error, as expected would be before - 1
+                            triggeredNewErrors = after >= before;
+                          } else {
+                            triggeredNewErrors = after > before;
+                          }
+
+                          if (targetErrorResolved && !triggeredNewErrors) {
+                            targetErrorResolvedWithoutNewErrors = true;
+                          }
+                        }
+
+                        // Check if tests fail, only if no compilation error is introduced
+                        if (!config.combined && !compilationErrorIntroduced) {
+                          System.out.println("Running tests...");
+                          try {
+
+                            Utility.CommandResult testResult =
+                                Utility.executeCommandAndCaptureOutput(
+                                    config,
+                                    String.format(
+                                        "cd %s && %s", config.benchmarkPath, config.testCommand));
+                            if (testResult.exitCode != 0) {
+                              failingTests = true;
+                            }
+
+                            // Save test logs to file
+                            try {
+                              Files.writeString(
+                                  config
+                                      .logPath
+                                      .getParent()
+                                      .resolve(String.format("test-log-%d.log", counter.get())),
+                                  String.format(
+                                      "====================\n%s\nTest Exit Code: %d\nTest Output:\n%s\n",
+                                      error, testResult.exitCode, testResult.output),
+                                  Charset.defaultCharset());
+                            } catch (Exception e) {
+                              logger.trace("Error while writing test log to file: ", e);
+                            }
+                          } catch (Exception e) {
+                            System.err.println("Error while running tests: " + e.getMessage());
+                          }
                         }
                       }
 
@@ -591,28 +617,32 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       if (config.combined) {
 
                         try (GitUtility git = GitUtility.instance(config)) {
-                          if (git.hasChangesToCommit()) {
-                            patchGenerated = true;
-                          }
-                          if (after < before) {
-                            logger.trace(
-                                "Patch reduced errors from {} to {}, committing.", before, after);
-                            System.out.printf(
-                                "Patch reduced errors from %d to %d, committing.%n", before, after);
-                            git.stageAllChanges();
-                            git.commitChanges("fix: " + error);
-                            String commitHash = git.getLatestCommitHash();
-                            TSVFiles.addRow(
-                                counter.get() + "\t" + error.toTSV() + "\t" + commitHash,
-                                config.commitHashPath);
+                          if (patchGenerated) {
+                            if (after < before) {
+                              logger.trace(
+                                  "Patch reduced errors from {} to {}, committing.", before, after);
+                              System.out.printf(
+                                  "Patch reduced errors from %d to %d, committing.%n",
+                                  before, after);
+                              git.stageAllChanges();
+                              git.commitChanges("fix: " + error);
+                              String commitHash = git.getLatestCommitHash();
+                              TSVFiles.addRow(
+                                  counter.get() + "\t" + error.toTSV() + "\t" + commitHash,
+                                  config.commitHashPath);
+                            } else {
+                              logger.trace(
+                                  "Patch did not reduced errors was {}, now is: {}, resetting.",
+                                  before,
+                                  after);
+                              System.out.printf(
+                                  "Patch did not reduced errors was %d, now is: %d, resetting.%n",
+                                  before, after);
+                              git.resetHard();
+                            }
                           } else {
-                            logger.trace(
-                                "Patch did not reduced errors was {}, now is: {}, resetting.",
-                                before,
-                                after);
-                            System.out.printf(
-                                "Patch did not reduced errors was %d, now is: %d, resetting.%n",
-                                before, after);
+                            logger.trace("No patch generated, nothing to commit.");
+                            System.out.println("No patch generated, nothing to commit.");
                             git.resetHard();
                           }
                         } catch (Exception ex) {
@@ -622,24 +652,22 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       } else {
                         if (success) {
                           try (GitUtility git = GitUtility.instance(config)) {
-                            if (git.hasChangesToCommit()) {
-                              patchGenerated = true;
-                              System.out.println("Pushing changes to git...");
-                              git.stageAllChanges();
-                              git.commitChanges(
-                                  String.format(
-                                      "fix: %d - %s - %s - %s",
-                                      counter.get(),
-                                      error.messageType,
-                                      error.position.diagnosticLine.trim(),
-                                      error.message));
-                              git.pushChanges();
-                              String commitHash = git.getLatestCommitHash();
-                              TSVFiles.addRow(
-                                  counter.get() + "\t" + error.toTSV() + "\t" + commitHash,
-                                  config.commitHashPath);
-                              git.revertLastCommit();
-                            }
+                            System.out.println("Pushing changes to git...");
+                            git.stageAllChanges();
+                            git.commitChanges(
+                                String.format(
+                                    "fix: %d - %s - %s - %s",
+                                    counter.get(),
+                                    error.messageType,
+                                    error.position.diagnosticLine.trim(),
+                                    error.message));
+                            git.pushChanges();
+                            String commitHash = git.getLatestCommitHash();
+                            TSVFiles.addRow(
+                                counter.get() + "\t" + error.toTSV() + "\t" + commitHash,
+                                config.commitHashPath);
+                            git.revertLastCommit();
+
                           } catch (Exception ex) {
                             System.err.println("Error while pushing changes: " + ex.getMessage());
                           }
@@ -652,6 +680,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                           patchGenerated,
                           compilationErrorIntroduced,
                           targetErrorResolved,
+                          targetErrorResolvedWithoutNewErrors,
                           triggeredNewErrors,
                           elapsedTimePerError,
                           failingTests);
@@ -669,6 +698,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
       boolean patchGenerated,
       boolean compilationErrorIntroduced,
       boolean targetErrorResolved,
+      boolean targetErrorResolvedWithoutNewErrors,
       boolean triggeredNewErrors,
       long elapsedTimePerError,
       boolean failingTests) {
@@ -678,26 +708,28 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     if (combinedMode) {
 
       metricsHeader =
-          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS";
+          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS";
       row =
           String.format(
-              "%d\t%b\t%b\t%b\t%b\t%d",
+              "%d\t%b\t%b\t%b\t%b\t%b\t%d",
               id,
               patchGenerated,
               compilationErrorIntroduced,
               targetErrorResolved,
+              targetErrorResolvedWithoutNewErrors,
               triggeredNewErrors,
               elapsedTimePerError);
     } else {
       metricsHeader =
-          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tFAILING_TESTS";
+          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tFAILING_TESTS";
       row =
           String.format(
-              "%d\t%b\t%b\t%b\t%b\t%d\t%b",
+              "%d\t%b\t%b\t%b\t%b\t%b\t%d\t%b",
               id,
               patchGenerated,
               compilationErrorIntroduced,
               targetErrorResolved,
+              targetErrorResolvedWithoutNewErrors,
               triggeredNewErrors,
               elapsedTimePerError,
               failingTests);
