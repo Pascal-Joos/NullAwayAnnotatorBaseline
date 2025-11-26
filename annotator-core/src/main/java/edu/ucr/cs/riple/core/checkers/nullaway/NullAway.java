@@ -37,6 +37,8 @@ import edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.AgentBaselineNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.BasicNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT;
+import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ModelPricing;
+import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPTTokenUsage;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.NullAwayCodeFix;
 import edu.ucr.cs.riple.core.module.ModuleConfiguration;
 import edu.ucr.cs.riple.core.module.ModuleInfo;
@@ -416,13 +418,12 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       logger.trace("=".repeat(30));
                       logger.trace("CHATGPT.COUNT = {}", ChatGPT.count);
                       logger.trace("CHATGPT.PROMPTS SIZE = {}", ChatGPT.askedPrompts.size());
+                      logger.trace("CHATGPT TOKENS USAGE: {}", ChatGPT.tokenUsage);
                       ChatGPT.count.set(0);
                       ChatGPT.askedPrompts.clear();
+                      ChatGPT.tokenUsage.reset();
                       codeFix.reset();
-                      logger.trace(
-                          "Both set to {} and cleared {}",
-                          ChatGPT.count,
-                          ChatGPT.askedPrompts.size());
+                      logger.trace("ChatGPT usage reset");
                       if (Main.DEBUG_MODE) {
                         if (error.position.diagnosticLine.contains(Main.DEBUG_LINE)) {
                           System.out.println("At index: " + counter.get());
@@ -502,6 +503,11 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     }
 
     writeLogFile(error, counter, log);
+
+    // Token usage is calculated differently for agent baseline mode.
+    if (!config.resolveRemainingErrorMode.isAgentBaseline()) {
+      logChatGPTUsage(counter, ChatGPT.tokenUsage, ChatGPT.count.get());
+    }
 
     boolean patchGenerated = false;
     boolean targetErrorResolved = false;
@@ -611,6 +617,48 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     } catch (Exception e) {
       logger.trace("Error while writing log to file: ", e);
     }
+  }
+
+  /**
+   * Calculates the cost in dollars for the currently used GPT model. Pricing is retrieved from
+   * MODEL_PRICING map.
+   */
+  private double calculateGPTCost(long promptTokens, long completionTokens) {
+    ModelPricing pricing = ChatGPT.MODEL_PRICING.get(config.modelName);
+    if (pricing == null) {
+      System.err.println(
+          "Pricing information not found for model: "
+              + config.modelName
+              + ". Defaulting to openai/gpt-4o.");
+      pricing = ChatGPT.MODEL_PRICING.get("openai/gpt-4o");
+    }
+    double promptCost = promptTokens * pricing.promptCostPer1K / 1_000.0;
+    double completionCost = completionTokens * pricing.completionCostPer1K / 1_000.0;
+    return promptCost + completionCost;
+  }
+
+  private void logChatGPTUsage(
+      AtomicInteger counter, ChatGPTTokenUsage tokenUsage, long promptCounts) {
+    System.out.println("Logging ChatGPT token usage...");
+
+    String metricsHeader =
+        "ID\tPROMPTS_COUNT\tPROMPTS_TOKENS\tRESPONSES_TOKENS\tTOTAL_TOKENS\tCOST_IN_DOLLARS";
+    Path tokenUsagePath = config.logPath.getParent().resolve("token-usages.tsv");
+    if (Files.notExists(tokenUsagePath)) {
+      TSVFiles.initialize(tokenUsagePath, metricsHeader);
+    }
+    double cost = calculateGPTCost(tokenUsage.getPromptTokens(), tokenUsage.getCompletionTokens());
+    String row =
+        String.format(
+            "%d\t%d\t%d\t%d\t%d\t%f",
+            counter.get(),
+            promptCounts,
+            tokenUsage.getPromptTokens(),
+            tokenUsage.getCompletionTokens(),
+            tokenUsage.getTotalTokens(),
+            cost);
+
+    TSVFiles.addRow(row, tokenUsagePath);
   }
 
   private boolean checkForTestFailures(

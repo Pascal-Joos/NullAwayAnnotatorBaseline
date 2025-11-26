@@ -56,6 +56,26 @@ import org.slf4j.LoggerFactory;
 /** Wrapper class to interact with ChatGPT to generate code fixes for {@link NullAwayError}s. */
 public class ChatGPT {
 
+  // Model pricing info (per 1K tokens)
+  public static final class ModelPricing {
+    public final double promptCostPer1K;
+    public final double completionCostPer1K;
+
+    ModelPricing(double prompt, double completion) {
+      this.promptCostPer1K = prompt;
+      this.completionCostPer1K = completion;
+    }
+  }
+
+  public static final java.util.Map<String, ModelPricing> MODEL_PRICING =
+      java.util.Map.of(
+          "openai/gpt-4o", new ModelPricing(0.0025, 0.010),
+          "openai/gpt-4.1-mini", new ModelPricing(0.0004, 0.0016),
+          "openai/gpt-4.1", new ModelPricing(0.002, 0.008),
+          "openai/gpt-5-mini", new ModelPricing(0.00025, 0.002),
+          "openai/gpt-5", new ModelPricing(0.00125, 0.01),
+          "openai/gpt-5.1", new ModelPricing(0.00125, 0.010));
+
   /** The URL to send the request to ChatGPT. */
   private static final String URL = "https://api.openai.com/v1/chat/completions";
 
@@ -129,6 +149,8 @@ public class ChatGPT {
   private final ASTParser parser;
 
   private final Context context;
+
+  public static final ChatGPTTokenUsage tokenUsage = new ChatGPTTokenUsage(0L, 0L);
 
   public ChatGPT(Context context, ASTParser parser) {
     this.context = context;
@@ -266,7 +288,10 @@ public class ChatGPT {
       }
       br.close();
       String response = extractMessageFromJSONResponse(rawResponse.toString());
+      ChatGPTTokenUsage tokenUsage = extractTokenUsageFromJSONResponse(rawResponse.toString());
       System.out.println("Response received from OpenAI.");
+      System.out.println(tokenUsage.toString());
+      ChatGPT.tokenUsage.add(tokenUsage);
       return response;
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -301,6 +326,18 @@ public class ChatGPT {
     }
     JsonObject choice = choices.get(0);
     return new JsonParser(choice).getValueFromKey("message:content").orElse("").getAsString();
+  }
+
+  private static ChatGPTTokenUsage extractTokenUsageFromJSONResponse(String response) {
+    JsonParser parser = new JsonParser(response);
+    JsonObject usage = parser.get("usage").getAsJsonObject();
+    if (usage.isEmpty()) {
+      return new ChatGPTTokenUsage(0L, 0L);
+    }
+    JsonParser usageParser = new JsonParser(usage);
+    long promptTokens = usageParser.getValueFromKey("prompt_tokens").orElse(0L).getAsLong();
+    long completionTokens = usageParser.getValueFromKey("completion_tokens").orElse(0L).getAsLong();
+    return new ChatGPTTokenUsage(promptTokens, completionTokens);
   }
 
   /**
