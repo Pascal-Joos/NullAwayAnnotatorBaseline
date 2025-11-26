@@ -342,10 +342,11 @@ public class ChatGPT {
 
     JsonObject promptTokensDetails = usageParser.get("prompt_tokens_details").getAsJsonObject();
     if (promptTokensDetails.isEmpty()) {
-      System.err.println("No prompt tokens details found, assuming all prompt tokens are uncached.");
+      System.err.println(
+          "No prompt tokens details found, assuming all prompt tokens are uncached.");
       return new ChatGPTTokenUsage(promptTokens, 0L, completionTokens);
     }
-    
+
     JsonParser promptTokensDetailsParser = new JsonParser(promptTokensDetails);
     long cachedPromptTokens =
         promptTokensDetailsParser.getValueFromKey("cached_tokens").orElse(0L).getAsLong();

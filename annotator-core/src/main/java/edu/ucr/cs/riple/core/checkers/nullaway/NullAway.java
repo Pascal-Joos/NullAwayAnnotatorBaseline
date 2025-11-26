@@ -66,6 +66,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -555,6 +556,22 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
         compilationErrorIntroduced = true;
       }
 
+      // If the json file was not created, this indicates that compilation failed before running
+      // NullAway.
+      AtomicBoolean compilationErrorIntroducedHolder =
+          new AtomicBoolean(compilationErrorIntroduced);
+      context.targetModuleInfo.getModuleConfiguration().stream()
+          .map(configuration -> configuration.dir.resolve("errors.json"))
+          .forEach(
+              path -> {
+                if (!Files.exists(path)) {
+                  System.out.println(
+                      "Patch caused compilation error, identified by missing errors.json file.");
+                  compilationErrorIntroducedHolder.set(true);
+                }
+              });
+      compilationErrorIntroduced = compilationErrorIntroducedHolder.get();
+
       if (!compilationErrorIntroduced) {
         Set<NullAwayError> remainingNullAwayErrors =
             Utility.readErrorsFromOutputDirectory(
@@ -577,9 +594,15 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
         if (targetErrorResolved && !triggeredNewErrors) {
           targetErrorResolvedWithoutNewErrors = true;
         }
+
+        // Check if tests fail, only if no compilation error is introduced, else it stays false.
+        if (!config.combined) {
+          failingTests = checkForTestFailures(error, counter);
+        }
+
       }
 
-      failingTests = checkForTestFailures(error, counter, compilationErrorIntroduced);
+      
     }
 
     commitChanges(error, counter, before, after, success, patchGenerated);
@@ -669,35 +692,34 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
   }
 
   private boolean checkForTestFailures(
-      NullAwayError error, AtomicInteger counter, boolean compilationErrorIntroduced) {
+      NullAwayError error, AtomicInteger counter) {
     boolean failingTests = false;
-    // Check if tests fail, only if no compilation error is introduced
-    if (!config.combined && !compilationErrorIntroduced) {
-      System.out.println("Running tests...");
-      try {
+    
+    System.out.println("Running tests...");
+    try {
 
-        Utility.CommandResult testResult =
-            Utility.executeCommandAndCaptureOutput(
-                config, String.format("cd %s && %s", config.benchmarkPath, config.testCommand));
-        if (testResult.exitCode != 0) {
-          failingTests = true;
-        }
-
-        // Save test logs to file
-        try {
-          Files.writeString(
-              config.logPath.getParent().resolve(String.format("test-log-%d.log", counter.get())),
-              String.format(
-                  "====================\n%s\nTest Exit Code: %d\nTest Output:\n%s\n",
-                  error, testResult.exitCode, testResult.output),
-              Charset.defaultCharset());
-        } catch (Exception e) {
-          logger.trace("Error while writing test log to file: ", e);
-        }
-      } catch (Exception e) {
-        System.err.println("Error while running tests: " + e.getMessage());
+      Utility.CommandResult testResult =
+          Utility.executeCommandAndCaptureOutput(
+              config, String.format("cd %s && %s", config.benchmarkPath, config.testCommand));
+      if (testResult.exitCode != 0) {
+        failingTests = true;
       }
+
+      // Save test logs to file
+      try {
+        Files.writeString(
+            config.logPath.getParent().resolve(String.format("test-log-%d.log", counter.get())),
+            String.format(
+                "====================\n%s\nTest Exit Code: %d\nTest Output:\n%s\n",
+                error, testResult.exitCode, testResult.output),
+            Charset.defaultCharset());
+      } catch (Exception e) {
+        logger.trace("Error while writing test log to file: ", e);
+      }
+    } catch (Exception e) {
+      System.err.println("Error while running tests: " + e.getMessage());
     }
+    
     return failingTests;
   }
 
