@@ -623,7 +623,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
    * Calculates the cost in dollars for the currently used GPT model. Pricing is retrieved from
    * MODEL_PRICING map.
    */
-  private double calculateGPTCost(long promptTokens, long completionTokens) {
+  private double calculateGPTCost(
+      long uncachedPromptTokens, long cachedPromptTokens, long completionTokens) {
     ModelPricing pricing = ChatGPT.MODEL_PRICING.get(config.modelName);
     if (pricing == null) {
       System.err.println(
@@ -632,9 +633,10 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
               + ". Defaulting to openai/gpt-4o.");
       pricing = ChatGPT.MODEL_PRICING.get("openai/gpt-4o");
     }
-    double promptCost = promptTokens * pricing.promptCostPer1K / 1_000.0;
+    double uncachedPromptCost = uncachedPromptTokens * pricing.uncachedPromptCostPer1K / 1_000.0;
+    double cachedPromptCost = cachedPromptTokens * pricing.cachedPromptCostPer1K / 1_000.0;
     double completionCost = completionTokens * pricing.completionCostPer1K / 1_000.0;
-    return promptCost + completionCost;
+    return uncachedPromptCost + cachedPromptCost + completionCost;
   }
 
   private void logChatGPTUsage(
@@ -642,18 +644,23 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     System.out.println("Logging ChatGPT token usage...");
 
     String metricsHeader =
-        "ID\tPROMPTS_COUNT\tPROMPTS_TOKENS\tRESPONSES_TOKENS\tTOTAL_TOKENS\tCOST_IN_DOLLARS";
+        "ID\tPROMPTS_COUNT\tUNCACHED_PROMPTS_TOKENS\tCACHED_PROMPTS_TOKENS\tRESPONSES_TOKENS\tTOTAL_TOKENS\tCOST_IN_DOLLARS";
     Path tokenUsagePath = config.logPath.getParent().resolve("token-usages.tsv");
     if (Files.notExists(tokenUsagePath)) {
       TSVFiles.initialize(tokenUsagePath, metricsHeader);
     }
-    double cost = calculateGPTCost(tokenUsage.getPromptTokens(), tokenUsage.getCompletionTokens());
+    double cost =
+        calculateGPTCost(
+            tokenUsage.getUncachedPromptTokens(),
+            tokenUsage.getCachedPromptTokens(),
+            tokenUsage.getCompletionTokens());
     String row =
         String.format(
-            "%d\t%d\t%d\t%d\t%d\t%f",
+            "%d\t%d\t%d\t%d\t%d\t%d\t%f",
             counter.get(),
             promptCounts,
-            tokenUsage.getPromptTokens(),
+            tokenUsage.getUncachedPromptTokens(),
+            tokenUsage.getCachedPromptTokens(),
             tokenUsage.getCompletionTokens(),
             tokenUsage.getTotalTokens(),
             cost);

@@ -1,30 +1,39 @@
 package edu.ucr.cs.riple.core.checkers.nullaway.codefix;
 
 public class ChatGPTTokenUsage {
-  private long promptTokens;
+  private long uncachedPromptTokens;
+  private long cachedPromptTokens;
   private long completionTokens;
   private long totalTokens;
 
-  public ChatGPTTokenUsage(long promptTokens, long completionTokens) {
-    this.promptTokens = promptTokens;
+  public ChatGPTTokenUsage(
+      long uncachedPromptTokens, long cachedPromptTokens, long completionTokens) {
+    this.uncachedPromptTokens = uncachedPromptTokens;
+    this.cachedPromptTokens = cachedPromptTokens;
     this.completionTokens = completionTokens;
-    this.totalTokens = promptTokens + completionTokens;
+    this.totalTokens = uncachedPromptTokens + cachedPromptTokens + completionTokens;
   }
 
   public void reset() {
-    this.promptTokens = 0L;
+    this.uncachedPromptTokens = 0L;
+    this.cachedPromptTokens = 0L;
     this.completionTokens = 0L;
     this.totalTokens = 0L;
   }
 
   public void add(ChatGPTTokenUsage other) {
-    this.promptTokens += other.promptTokens;
+    this.uncachedPromptTokens += other.uncachedPromptTokens;
+    this.cachedPromptTokens += other.cachedPromptTokens;
     this.completionTokens += other.completionTokens;
     this.totalTokens += other.totalTokens;
   }
 
-  public long getPromptTokens() {
-    return promptTokens;
+  public long getUncachedPromptTokens() {
+    return uncachedPromptTokens;
+  }
+
+  public long getCachedPromptTokens() {
+    return cachedPromptTokens;
   }
 
   public long getCompletionTokens() {
@@ -37,7 +46,7 @@ public class ChatGPTTokenUsage {
 
   public String toString() {
     return String.format(
-        "Token usage - Prompt: %d, Completion: %d, Total: %d",
-        promptTokens, completionTokens, totalTokens);
+        "Token usage - Uncached Prompt: %d, Cached Prompt: %d, Completion: %d, Total: %d",
+        uncachedPromptTokens, cachedPromptTokens, completionTokens, totalTokens);
   }
 }

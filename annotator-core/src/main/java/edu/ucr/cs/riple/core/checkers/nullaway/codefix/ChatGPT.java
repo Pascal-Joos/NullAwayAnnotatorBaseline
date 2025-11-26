@@ -58,23 +58,25 @@ public class ChatGPT {
 
   // Model pricing info (per 1K tokens)
   public static final class ModelPricing {
-    public final double promptCostPer1K;
+    public final double uncachedPromptCostPer1K;
+    public final double cachedPromptCostPer1K;
     public final double completionCostPer1K;
 
-    ModelPricing(double prompt, double completion) {
-      this.promptCostPer1K = prompt;
+    ModelPricing(double uncachedPrompt, double cachedPrompt, double completion) {
+      this.uncachedPromptCostPer1K = uncachedPrompt;
+      this.cachedPromptCostPer1K = cachedPrompt;
       this.completionCostPer1K = completion;
     }
   }
 
   public static final java.util.Map<String, ModelPricing> MODEL_PRICING =
       java.util.Map.of(
-          "openai/gpt-4o", new ModelPricing(0.0025, 0.010),
-          "openai/gpt-4.1-mini", new ModelPricing(0.0004, 0.0016),
-          "openai/gpt-4.1", new ModelPricing(0.002, 0.008),
-          "openai/gpt-5-mini", new ModelPricing(0.00025, 0.002),
-          "openai/gpt-5", new ModelPricing(0.00125, 0.01),
-          "openai/gpt-5.1", new ModelPricing(0.00125, 0.010));
+          "openai/gpt-4o", new ModelPricing(0.0025, 0.00125, 0.010),
+          "openai/gpt-4.1-mini", new ModelPricing(0.0004, 0.0001, 0.0016),
+          "openai/gpt-4.1", new ModelPricing(0.002, 0.0005, 0.008),
+          "openai/gpt-5-mini", new ModelPricing(0.00025, 0.000025, 0.002),
+          "openai/gpt-5", new ModelPricing(0.00125, 0.000125, 0.01),
+          "openai/gpt-5.1", new ModelPricing(0.00125, 0.000125, 0.010));
 
   /** The URL to send the request to ChatGPT. */
   private static final String URL = "https://api.openai.com/v1/chat/completions";
@@ -150,7 +152,7 @@ public class ChatGPT {
 
   private final Context context;
 
-  public static final ChatGPTTokenUsage tokenUsage = new ChatGPTTokenUsage(0L, 0L);
+  public static final ChatGPTTokenUsage tokenUsage = new ChatGPTTokenUsage(0L, 0L, 0L);
 
   public ChatGPT(Context context, ASTParser parser) {
     this.context = context;
@@ -332,12 +334,25 @@ public class ChatGPT {
     JsonParser parser = new JsonParser(response);
     JsonObject usage = parser.get("usage").getAsJsonObject();
     if (usage.isEmpty()) {
-      return new ChatGPTTokenUsage(0L, 0L);
+      return new ChatGPTTokenUsage(0L, 0L, 0L);
     }
     JsonParser usageParser = new JsonParser(usage);
     long promptTokens = usageParser.getValueFromKey("prompt_tokens").orElse(0L).getAsLong();
     long completionTokens = usageParser.getValueFromKey("completion_tokens").orElse(0L).getAsLong();
-    return new ChatGPTTokenUsage(promptTokens, completionTokens);
+
+    JsonObject promptTokensDetails = usageParser.get("prompt_tokens_details").getAsJsonObject();
+    if (promptTokensDetails.isEmpty()) {
+      System.err.println("No prompt tokens details found, assuming all prompt tokens are uncached.");
+      return new ChatGPTTokenUsage(promptTokens, 0L, completionTokens);
+    }
+    
+    JsonParser promptTokensDetailsParser = new JsonParser(promptTokensDetails);
+    long cachedPromptTokens =
+        promptTokensDetailsParser.getValueFromKey("cached_tokens").orElse(0L).getAsLong();
+
+    long unchachedPromptTokens = promptTokens - cachedPromptTokens;
+
+    return new ChatGPTTokenUsage(unchachedPromptTokens, cachedPromptTokens, completionTokens);
   }
 
   /**
