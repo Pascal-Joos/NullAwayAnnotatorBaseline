@@ -599,10 +599,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
         if (!config.combined) {
           failingTests = checkForTestFailures(error, counter);
         }
-
       }
-
-      
     }
 
     commitChanges(error, counter, before, after, success, patchGenerated);
@@ -691,10 +688,9 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     TSVFiles.addRow(row, tokenUsagePath);
   }
 
-  private boolean checkForTestFailures(
-      NullAwayError error, AtomicInteger counter) {
+  private boolean checkForTestFailures(NullAwayError error, AtomicInteger counter) {
     boolean failingTests = false;
-    
+
     System.out.println("Running tests...");
     try {
 
@@ -719,7 +715,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     } catch (Exception e) {
       System.err.println("Error while running tests: " + e.getMessage());
     }
-    
+
     return failingTests;
   }
 
