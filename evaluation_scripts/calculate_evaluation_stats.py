@@ -89,8 +89,9 @@ def parse_timers_tsv(path: str) -> float:
                 return float(row.get("TIME_IN_MILLIS", 0.0))
             except (TypeError, ValueError):
                 return 0.0
-            
-def parse_agent_logs(log_dir: str) -> Dict[str, Dict]:
+
+# Only applies to agent_baseline mode    
+def parse_agent_logs_agent_baseline(log_dir: str) -> Dict[str, Dict]:
     agent_info: Dict[str, Dict] = {}
 
     if not os.path.isdir(log_dir):
@@ -120,7 +121,26 @@ def parse_agent_logs(log_dir: str) -> Dict[str, Dict]:
 
     return agent_info
 
-def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: str) -> BenchmarkStats:
+# Only applies to non-agent_baseline modes
+def parse_token_usage_log(path: str) -> Dict[str, Dict]:
+    agent_info: Dict[str, Dict] = {}
+
+    if not os.path.exists(path):
+        return agent_info
+    
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            agent_info.setdefault(row["ID"], {})
+            agent_info[row["ID"]]["agent_cycles"] = int(row.get("PROMPTS_COUNT", 0))
+            agent_info[row["ID"]]["tokens"] = int(row.get("TOTAL_TOKENS", 0))
+            agent_info[row["ID"]]["monetary_cost"] = float(row.get("COST_IN_DOLLARS", 0.0))
+
+    return agent_info
+
+
+
+def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: str, code_fix_mode: str) -> BenchmarkStats:
     benchmark_dir = os.path.join(log_root, benchmark)
     config_dir = os.path.join(benchmark_dir, config_subdir)
 
@@ -132,11 +152,16 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
     metrics_rows = parse_metrics_tsv(metrics_path)
     full_scaffold_execution_time_in_millis = parse_timers_tsv(timers_path)
     stats.full_scaffold_execution_time_in_sec = full_scaffold_execution_time_in_millis / 1000.0
-    agent_logs = parse_agent_logs(config_dir)
+
+    if code_fix_mode == "agent_baseline":
+        agent_info = parse_agent_logs_agent_baseline(config_dir)
+    else:
+        token_usage_dir = os.path.join(config_dir, "token-usages.tsv")
+        agent_info = parse_token_usage_log(token_usage_dir)
 
     for row in metrics_rows:
         patch_id = row.get("ID")
-        agent_info = agent_logs.get(patch_id, {})
+        agent_info_for_patch = agent_info.get(patch_id, {})
 
         patch_record: Dict = {}
         patch_record["generated_patch"] = row.get("PATCH_GENERATED", "false").lower() == "true"
@@ -148,9 +173,9 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
 
         patch_record["execution_time_sec"] = float(row.get("EXECUTION_TIME_IN_MILLIS")) / 1000.0 if row.get("EXECUTION_TIME_IN_MILLIS") is not None else 0.0
         
-        patch_record["agent_cycles"] = agent_info.get("agent_cycles", 0)
-        patch_record["tokens"] = agent_info.get("tokens", 0)
-        patch_record["monetary_cost"] = agent_info.get("monetary_cost", 0.0)
+        patch_record["agent_cycles"] = agent_info_for_patch.get("agent_cycles", 0)
+        patch_record["tokens"] = agent_info_for_patch.get("tokens", 0)
+        patch_record["monetary_cost"] = agent_info_for_patch.get("monetary_cost", 0.0)
 
         stats.aggregate_from_patch(patch_record)
 
@@ -205,6 +230,12 @@ def main() -> None:
         help="Subdirectory name for the specific configuration to analyze (default: %(default)s)",
     )
     parser.add_argument(
+        "--code-fix-mode",
+        choices=["advanced", "basic", "agent_baseline"],
+        default="agent_baseline",
+        help="Code fix mode used in the experiment (default: %(default)s)",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="evaluation_stats.tsv",
@@ -223,7 +254,7 @@ def main() -> None:
 
     stats_list: List[BenchmarkStats] = []
     for benchmark in sorted(benchmarks):
-        stats = collect_stats_for_benchmark(args.log_root, benchmark, args.config_subdir)
+        stats = collect_stats_for_benchmark(args.log_root, benchmark, args.config_subdir, args.code_fix_mode)
         stats_list.append(stats)
 
     write_stats_tsv(args.output, stats_list)
