@@ -203,7 +203,7 @@ public class Main {
 
     Config config = new Config(argsArray);
     config.benchmarkName = benchmarkName;
-    config.benchmarkPath = PROJECT_PATH;
+    config.benchmarkPath = Paths.get(PROJECT_PATH);
     config.combined = combined;
     configureLogging(config);
 

@@ -59,7 +59,7 @@ public class GitUtility implements AutoCloseable {
         "org.eclipse.jgit.transport.sshTransport",
         "org.eclipse.jgit.transport.sshd.SshdSessionFactory");
     try {
-      this.git = Git.open(new File(config.benchmarkPath));
+      this.git = Git.open(new File(config.benchmarkPath.toString()));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

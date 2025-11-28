@@ -10,9 +10,12 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +27,9 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
 
   private final Logger logger;
 
-  private final String benchmarkDirectoryPath;
+  private final Path benchmarkDirectoryPath;
 
-  public AgentBaselineNullAwayCodeFix(Context context, String benchmarkDirectoryPath) {
+  public AgentBaselineNullAwayCodeFix(Context context, Path benchmarkDirectoryPath) {
     super(context);
     this.logger = LoggerFactory.getLogger(AgentBaselineNullAwayCodeFix.class);
     this.benchmarkDirectoryPath = benchmarkDirectoryPath;
@@ -52,18 +55,29 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
             + "\""
             + error.getRegion().member
             + "\"";
+
+    Map<String, Object> placeholderMappings = new HashMap<>();
+    placeholderMappings.put("errorType", error.messageType);
+    placeholderMappings.put("errorMessage", error.message);
+    placeholderMappings.put("errorPath", error.path);
+    placeholderMappings.put("lineNumber", error.position.lineNumber + 1);
+    placeholderMappings.put("errorCodeLine", error.position.diagnosticLine);
+    placeholderMappings.put("errorRegion", region);
+    placeholderMappings.put("workingDir", context.config.benchmarkPath);
+    placeholderMappings.put(
+        "totalErrors",
+        Utility.readErrorsFromOutputDirectory(
+                context, context.targetModuleInfo, NullAwayError.class)
+            .size());
+    placeholderMappings.put("initialLogFilePath", context.config.initialErrorsLogPath);
+    placeholderMappings.put("errorCountInFile", countErrorsInFile(error, context));
+    placeholderMappings.put(
+        "buildCommand",
+        context.config.buildCommand.substring(context.config.buildCommand.indexOf("./gradlew")));
+    placeholderMappings.put("fileName", error.path.getFileName());
+
     String prompt =
-        String.format(
-            AGENT_FIX_REQUEST_PROMPT,
-            error.messageType,
-            error.message,
-            error.path,
-            error.position.lineNumber + 1,
-            error.position.diagnosticLine,
-            region,
-            infoOnMultipleErrorsInFile(error, context),
-            context.config.buildCommand.substring(context.config.buildCommand.indexOf("./gradlew")),
-            error.path.getFileName());
+        StringSubstitutor.replace(AGENT_FIX_REQUEST_PROMPT, placeholderMappings, "%(", ")");
 
     // Invoke the mini-swe-agent Python script and pass the prompt via stdin.
     ProcessBuilder pb =
@@ -73,7 +87,7 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
             "-m",
             context.config.modelName,
             "-d",
-            this.benchmarkDirectoryPath,
+            this.benchmarkDirectoryPath.toString(),
             "-t",
             prompt,
             "-y",
@@ -151,17 +165,11 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
     }
   }
 
-  private String infoOnMultipleErrorsInFile(NullAwayError error, Context context) {
-    long count =
-        Utility.readErrorsFromOutputDirectory(
-                context, context.targetModuleInfo, NullAwayError.class)
-            .stream()
-            .filter(e -> e.path.equals(error.path))
-            .count();
-    if (count > 1) {
-      return "Note that there are a total of " + count + " NullAway errors reported in this file. ";
-    } else {
-      return "";
-    }
+  private long countErrorsInFile(NullAwayError error, Context context) {
+    return Utility.readErrorsFromOutputDirectory(
+            context, context.targetModuleInfo, NullAwayError.class)
+        .stream()
+        .filter(e -> e.path.equals(error.path))
+        .count();
   }
 }
