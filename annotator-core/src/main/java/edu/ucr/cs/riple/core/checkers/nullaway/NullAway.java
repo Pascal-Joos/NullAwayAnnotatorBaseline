@@ -62,6 +62,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -522,8 +523,9 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
           config.initialErrorsLogPath,
           initialBuildResult.output,
           Charset.defaultCharset(),
-          java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
-          java.nio.file.StandardOpenOption.WRITE);
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.WRITE);
     } catch (IOException e) {
       logger.error("Error while logging initial build output to file: ", e);
     }
