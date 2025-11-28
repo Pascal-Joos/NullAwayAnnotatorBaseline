@@ -179,8 +179,9 @@ public class Config {
   public final ResolveRemainingErrorMode resolveRemainingErrorMode;
 
   /// START OF CONFIGURATION FOR RUNNING BENCHMARKS
-  public String benchmarkPath;
+  public Path benchmarkPath;
   public String benchmarkName;
+  public Path initialErrorsLogPath;
   public Path logPath;
   public Path metricsPath;
   public Path commitHashPath;
