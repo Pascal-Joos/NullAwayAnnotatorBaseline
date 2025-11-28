@@ -48,6 +48,7 @@ import edu.ucr.cs.riple.core.registries.index.Fix;
 import edu.ucr.cs.riple.core.registries.region.Region;
 import edu.ucr.cs.riple.core.util.GitUtility;
 import edu.ucr.cs.riple.core.util.Utility;
+import edu.ucr.cs.riple.core.util.Utility.CommandResult;
 import edu.ucr.cs.riple.injector.changes.AddAnnotation;
 import edu.ucr.cs.riple.injector.changes.AddMarkerAnnotation;
 import edu.ucr.cs.riple.injector.changes.AddSingleElementAnnotation;
@@ -252,7 +253,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
   @Override
   public void suppressRemainingErrors() {
     // Collect regions with remaining errors.
-    Utility.buildTarget(context);
+    Utility.buildTarget(context, false);
     Set<NullAwayError> remainingErrors = deserializeErrors(context.targetModuleInfo);
     // Collect all regions for NullUnmarked.
     // For all errors in regions which correspond to a method's body, we can add @NullUnmarked at
@@ -361,7 +362,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     // update log
     context.log.updateInjectedAnnotations(result);
     // Collect @NullUnmarked annotations on classes for any remaining error.
-    Utility.buildTarget(context);
+    Utility.buildTarget(context, false);
     remainingErrors = deserializeErrors(context.targetModuleInfo);
     nullUnMarkedAnnotations =
         remainingErrors.stream()
@@ -380,7 +381,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
   @Override
   public void resolveRemainingErrors() {
     long timer = System.currentTimeMillis();
-    Utility.buildTarget(context);
+    Utility.buildTarget(context, false);
 
     NullAwayCodeFix codeFix =
         config.resolveRemainingErrorMode.isAdvanced()
@@ -420,6 +421,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       logger.trace("CHATGPT.COUNT = {}", ChatGPT.count);
                       logger.trace("CHATGPT.PROMPTS SIZE = {}", ChatGPT.askedPrompts.size());
                       logger.trace("CHATGPT TOKENS USAGE: {}", ChatGPT.tokenUsage);
+
+                      // cleanup
                       ChatGPT.count.set(0);
                       ChatGPT.askedPrompts.clear();
                       ChatGPT.tokenUsage.reset();
@@ -432,11 +435,17 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                           return;
                         }
                       }
-                      // cleanup
+                      if (config.resolveRemainingErrorMode.isAgentBaseline()) {
+                        cleanBuildOutputFiles(context);
+                      }
+
                       logger.trace("{} : TOP LEVEL CALL TO FIX ERROR: {}", counter.get(), error);
                       Set<RegionRewrite> changes;
                       boolean success = true;
-                      Utility.buildTarget(context);
+                      CommandResult initialBuildResult = Utility.buildTarget(context, true);
+                      if (config.resolveRemainingErrorMode.isAgentBaseline()) {
+                        logInitialBuildOutputToFile(initialBuildResult);
+                      }
                       int before =
                           Utility.readErrorsFromOutputDirectory(
                                   context, context.targetModuleInfo, NullAwayError.class)
@@ -483,6 +492,40 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     if (config.actualRunEnabled()) {
       TSVFiles.initialize(config.timerPath, "TIME_IN_MILLIS");
       TSVFiles.addRow(String.valueOf(elapsed), config.timerPath);
+    }
+  }
+
+  private void cleanBuildOutputFiles(Context context) {
+    List<String> commonBuildOutputFileNames =
+        List.of(
+            "build_output.log",
+            "build_output.txt",
+            "build.log",
+            "build.txt",
+            "new_build_output.log",
+            "new_build_output.txt",
+            "new_build.log",
+            "new_build.txt",
+            "initial_build_output.log");
+    for (String fileName : commonBuildOutputFileNames) {
+      try {
+        Files.deleteIfExists(context.config.benchmarkPath.resolve(fileName));
+      } catch (IOException e) {
+        logger.error("Error while deleting build output log file {}: {}", fileName, e);
+      }
+    }
+  }
+
+  private void logInitialBuildOutputToFile(CommandResult initialBuildResult) {
+    try {
+      Files.writeString(
+          config.initialErrorsLogPath,
+          initialBuildResult.output,
+          Charset.defaultCharset(),
+          java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
+          java.nio.file.StandardOpenOption.WRITE);
+    } catch (IOException e) {
+      logger.error("Error while logging initial build output to file: ", e);
     }
   }
 
@@ -548,7 +591,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                   }
                 });
         // Build target after applying the fix, to check for remaining errors.
-        Utility.buildTarget(context);
+        Utility.buildTarget(context, false);
 
       } catch (Exception e) {
         System.out.println("Patch caused compilation error, setting after to max value.");

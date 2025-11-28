@@ -71,6 +71,7 @@ public class Utility {
    *
    * @param config Annotator configuration.
    * @param command The shell command to run.
+   * @return The exit code of the command.
    */
   public static int executeCommand(Config config, String command) {
     return executeCommand(config, command, false);
@@ -251,7 +252,7 @@ public class Utility {
   public static void runScannerChecker(
       Context context, ImmutableSet<ModuleConfiguration> configurations, String buildCommand) {
     Utility.setScannerCheckerActivation(context.config, configurations, true);
-    Utility.build(context, buildCommand);
+    Utility.build(context, buildCommand, false);
     Utility.setScannerCheckerActivation(context.config, configurations, false);
   }
 
@@ -281,7 +282,7 @@ public class Utility {
    */
   public static void buildDownstreamDependencies(Context context) {
     context.checker.prepareConfigFilesForBuild(context.downstreamConfigurations);
-    build(context, context.config.downstreamDependenciesBuildCommand);
+    build(context, context.config.downstreamDependenciesBuildCommand, false);
   }
 
   /**
@@ -292,10 +293,12 @@ public class Utility {
    * #runScannerChecker(Context, ImmutableSet, String)}
    *
    * @param context the context for the annotator.
+   * @param captureOutput Flag to indicate whether to capture the command output.
+   * @return CommandResult containing exit code and output (if captured).
    */
-  public static void buildTarget(Context context) {
+  public static CommandResult buildTarget(Context context, boolean captureOutput) {
     context.checker.prepareConfigFilesForBuild(context.targetModuleInfo.getModuleConfigurations());
-    build(context, context.config.buildCommand);
+    return build(context, context.config.buildCommand, captureOutput);
   }
 
   /**
@@ -303,13 +306,23 @@ public class Utility {
    *
    * @param context Annotator context.
    * @param command Command to run to build module(s).
+   * @param captureOutput Flag to indicate whether to capture the command output.
+   * @return CommandResult containing exit code and output (if captured).
    */
-  public static void build(Context context, String command) {
+  public static CommandResult build(Context context, String command, boolean captureOutput) {
     try {
       long timer = context.log.startTimer();
-      Utility.executeCommand(context.config, command);
+      CommandResult commandResult;
+      if (captureOutput) {
+        commandResult = Utility.executeCommandAndCaptureOutput(context.config, command);
+      } else {
+        int exitCode = Utility.executeCommand(context.config, command);
+
+        commandResult = new CommandResult(exitCode, "");
+      }
       context.log.stopTimerAndCaptureBuildTime(timer);
       context.log.incrementBuildRequest();
+      return commandResult;
     } catch (Exception e) {
       throw new RuntimeException("Could not run command: " + command, e);
     }

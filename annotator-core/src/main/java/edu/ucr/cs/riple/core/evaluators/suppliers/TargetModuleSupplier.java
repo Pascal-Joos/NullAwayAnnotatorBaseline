@@ -83,7 +83,7 @@ public class TargetModuleSupplier extends AbstractSupplier {
 
   @Override
   public ConflictGraphProcessor getGraphProcessor() {
-    CompilerRunner runner = () -> Utility.buildTarget(context);
+    CompilerRunner runner = () -> Utility.buildTarget(context, false);
     if (context.config.useParallelGraphProcessor) {
       return new ParallelConflictGraphProcessor(context, runner, this);
     }

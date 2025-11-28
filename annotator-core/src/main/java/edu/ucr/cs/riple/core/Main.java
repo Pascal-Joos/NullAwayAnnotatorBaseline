@@ -204,6 +204,7 @@ public class Main {
     Config config = new Config(argsArray);
     config.benchmarkName = benchmarkName;
     config.benchmarkPath = Paths.get(PROJECT_PATH);
+    config.initialErrorsLogPath = Paths.get(PROJECT_PATH, "initial_build_output.log");
     config.combined = combined;
     configureLogging(config);
 

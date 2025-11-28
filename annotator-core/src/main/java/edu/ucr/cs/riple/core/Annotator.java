@@ -169,7 +169,7 @@ public class Annotator {
    * @return Immutable set of reports from the triggered fixes.
    */
   public ImmutableSet<Report> processTriggeredFixes() {
-    Utility.buildTarget(context);
+    Utility.buildTarget(context, false);
     // Suggested fixes of target at the current state.
     ImmutableSet<Fix> fixes =
         Utility.readFixesFromOutputDirectory(context, context.targetModuleInfo).stream()
