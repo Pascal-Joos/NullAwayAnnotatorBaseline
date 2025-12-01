@@ -409,86 +409,96 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
             : new AtomicLong(0);
     remainingErrors.stream()
         .collect(Collectors.groupingBy(NullAwayError::getRegion))
+        .entrySet()
+        .stream()
+        .sorted(
+            (e1, e2) ->
+                e1.getKey().compareTo(e2.getKey())) // Sort regions for deterministic ordering
         .forEach(
-            (region, nullAwayErrors) ->
-                nullAwayErrors.forEach(
-                    error -> {
-                      long timerPerError = System.currentTimeMillis();
+            entry -> {
+              List<NullAwayError> nullAwayErrors =
+                  entry.getValue().stream()
+                      .sorted() // Sort errors for deterministic ordering
+                      .collect(Collectors.toList());
 
-                      counter.incrementAndGet();
-                      System.out.println(
-                          counter.get() + " : TOP LEVEL CALL TO FIX ERROR: " + error);
-                      logger.trace("=".repeat(30));
-                      logger.trace("CHATGPT.COUNT = {}", ChatGPT.count);
-                      logger.trace("CHATGPT.PROMPTS SIZE = {}", ChatGPT.askedPrompts.size());
-                      logger.trace("CHATGPT TOKENS USAGE: {}", ChatGPT.tokenUsage);
+              nullAwayErrors.forEach(
+                  error -> {
+                    long timerPerError = System.currentTimeMillis();
 
-                      // cleanup
-                      ChatGPT.count.set(0);
-                      ChatGPT.askedPrompts.clear();
-                      ChatGPT.tokenUsage.reset();
-                      codeFix.reset();
-                      logger.trace("ChatGPT usage reset");
-                      if (Main.DEBUG_MODE) {
-                        if (error.position.diagnosticLine.contains(Main.DEBUG_LINE)) {
-                          System.out.println("At index: " + counter.get());
-                        } else {
-                          return;
-                        }
+                    counter.incrementAndGet();
+                    System.out.println(counter.get() + " : TOP LEVEL CALL TO FIX ERROR: " + error);
+                    logger.trace("=".repeat(30));
+                    logger.trace("CHATGPT.COUNT = {}", ChatGPT.count);
+                    logger.trace("CHATGPT.PROMPTS SIZE = {}", ChatGPT.askedPrompts.size());
+                    logger.trace("CHATGPT TOKENS USAGE: {}", ChatGPT.tokenUsage);
+
+                    // cleanup
+                    ChatGPT.count.set(0);
+                    ChatGPT.askedPrompts.clear();
+                    ChatGPT.tokenUsage.reset();
+                    codeFix.reset();
+                    logger.trace("ChatGPT usage reset");
+                    if (Main.DEBUG_MODE) {
+                      if (error.position.diagnosticLine.contains(Main.DEBUG_LINE)) {
+                        System.out.println("At index: " + counter.get());
+                      } else {
+                        return;
                       }
-                      if (config.resolveRemainingErrorMode.isAgentBaseline()) {
-                        cleanBuildOutputFiles(context);
-                      }
+                    }
+                    if (config.resolveRemainingErrorMode.isAgentBaseline()) {
+                      cleanBuildOutputFiles(context);
+                    }
 
-                      logger.trace("{} : TOP LEVEL CALL TO FIX ERROR: {}", counter.get(), error);
-                      Set<RegionRewrite> changes;
-                      boolean success = true;
-                      CommandResult initialBuildResult = Utility.buildTarget(context, true);
-                      if (config.resolveRemainingErrorMode.isAgentBaseline()) {
-                        logInitialBuildOutputToFile(initialBuildResult);
+                    logger.trace("{} : TOP LEVEL CALL TO FIX ERROR: {}", counter.get(), error);
+                    Set<RegionRewrite> changes;
+                    boolean success = true;
+                    CommandResult initialBuildResult = Utility.buildTarget(context, true);
+                    if (config.resolveRemainingErrorMode.isAgentBaseline()) {
+                      logInitialBuildOutputToFile(initialBuildResult);
+                    }
+                    int before =
+                        Utility.readErrorsFromOutputDirectory(
+                                context, context.targetModuleInfo, NullAwayError.class)
+                            .size();
+                    try {
+                      // AgentBaselineNullAwayCodeFix returns an empty set of changes, as the
+                      // agent makes modifications to the code directly.
+                      changes = codeFix.fix(error, counter.get());
+                      System.out.println("Finished processing.");
+                    } catch (Exception e) {
+                      changes = Set.of();
+                      success = false;
+                      System.err.println(
+                          "Error while fixing-------: " + e.getMessage() + " \n " + e);
+                      e.printStackTrace(System.out);
+                      logger.trace(
+                          "--------Exception occurred in computing fix-------- | {}",
+                          counter.get(),
+                          e);
+                      try (GitUtility git = GitUtility.instance(config)) {
+                        git.resetHard();
+                      } catch (Exception ex) {
+                        System.err.println("Error while resetting: " + ex.getMessage());
                       }
-                      int before =
-                          Utility.readErrorsFromOutputDirectory(
-                                  context, context.targetModuleInfo, NullAwayError.class)
-                              .size();
-                      try {
-                        // AgentBaselineNullAwayCodeFix returns an empty set of changes, as the
-                        // agent makes modifications to the code directly.
-                        changes = codeFix.fix(error, counter.get());
-                        System.out.println("Finished processing.");
-                      } catch (Exception e) {
-                        changes = Set.of();
-                        success = false;
-                        System.err.println(
-                            "Error while fixing-------: " + e.getMessage() + " \n " + e);
-                        e.printStackTrace(System.out);
-                        logger.trace(
-                            "--------Exception occurred in computing fix-------- | {}",
-                            counter.get(),
-                            e);
-                        try (GitUtility git = GitUtility.instance(config)) {
-                          git.resetHard();
-                        } catch (Exception ex) {
-                          System.err.println("Error while resetting: " + ex.getMessage());
-                        }
-                      }
-                      codeFix.apply(changes);
+                    }
+                    codeFix.apply(changes);
 
-                      // Log time taken, excluding committing the changes and calculating metrics.
-                      long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
-                      System.out.println("Time taken to fix error: " + elapsedTimePerError + " ms");
+                    // Log time taken, excluding committing the changes and calculating metrics.
+                    long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
+                    System.out.println("Time taken to fix error: " + elapsedTimePerError + " ms");
 
-                      if (config.actualRunEnabled()) {
-                        long currentLineNumber = Utility.getLineCountOfFile(config.logPath);
-                        String log =
-                            Utility.getLinesFromFile(
-                                config.logPath, previousLineNumber.get(), currentLineNumber);
-                        previousLineNumber.set(currentLineNumber);
+                    if (config.actualRunEnabled()) {
+                      long currentLineNumber = Utility.getLineCountOfFile(config.logPath);
+                      String log =
+                          Utility.getLinesFromFile(
+                              config.logPath, previousLineNumber.get(), currentLineNumber);
+                      previousLineNumber.set(currentLineNumber);
 
-                        postProcessFixedError(
-                            error, before, elapsedTimePerError, counter, log, success);
-                      }
-                    }));
+                      postProcessFixedError(
+                          error, before, elapsedTimePerError, counter, log, success);
+                    }
+                  });
+            });
     long elapsed = System.currentTimeMillis() - timer;
     if (config.actualRunEnabled()) {
       TSVFiles.initialize(config.timerPath, "TIME_IN_MILLIS");

@@ -41,7 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Represents an error reported by {@link NullAway}. */
-public class NullAwayError extends Error {
+public class NullAwayError extends Error implements Comparable<NullAwayError> {
 
   /** Additional information about the error. */
   private final JsonObject infos;
@@ -56,6 +56,23 @@ public class NullAwayError extends Error {
     ErrorType(String type) {
       this.type = type;
     }
+  }
+
+  @Override
+  public int compareTo(NullAwayError other) {
+    int regionCmp = this.region.compareTo(other.region);
+    if (regionCmp != 0) {
+      return regionCmp;
+    }
+    int typeCmp = this.messageType.compareTo(other.messageType);
+    if (typeCmp != 0) {
+      return typeCmp;
+    }
+    int messageCmp = this.message.compareTo(other.message);
+    if (messageCmp != 0) {
+      return messageCmp;
+    }
+    return this.position.compareTo(other.position);
   }
 
   /** Contains information about the nullable expression causing the error. */

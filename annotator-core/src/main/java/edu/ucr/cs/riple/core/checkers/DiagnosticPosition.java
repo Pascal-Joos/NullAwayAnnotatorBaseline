@@ -29,7 +29,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /** Represents a position in a file where a diagnostic is reported. */
-public class DiagnosticPosition {
+public class DiagnosticPosition implements Comparable<DiagnosticPosition> {
 
   /** The offset in the file where the diagnostic is reported. */
   public final int offset;
@@ -79,6 +79,11 @@ public class DiagnosticPosition {
     this.adaptedOffset = 0;
     this.offsetInLine = 0;
     this.path = null;
+  }
+
+  @Override
+  public int compareTo(DiagnosticPosition other) {
+    return Integer.compare(this.adaptedOffset, other.adaptedOffset);
   }
 
   @Override

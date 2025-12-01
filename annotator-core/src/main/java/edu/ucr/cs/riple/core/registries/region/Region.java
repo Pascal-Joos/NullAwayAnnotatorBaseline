@@ -33,7 +33,7 @@ import java.util.Objects;
  * Class for denoting a region in source code. A region can be either a method body or class field
  * initialization body.
  */
-public class Region {
+public class Region implements Comparable<Region> {
   /**
    * Symbol of the region representative. If region is a class static initialization region, member
    * value will be String of {@code "null"} not {@code null}.
@@ -68,6 +68,15 @@ public class Region {
 
   public Region(String encClass, String encMember) {
     this(encClass, encMember, SourceType.SOURCE);
+  }
+
+  @Override
+  public int compareTo(Region other) {
+    int clazzCmp = this.clazz.compareTo(other.clazz);
+    if (clazzCmp != 0) {
+      return clazzCmp;
+    }
+    return this.member.compareTo(other.member);
   }
 
   /**
