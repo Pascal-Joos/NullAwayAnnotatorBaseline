@@ -5,51 +5,24 @@
 The baseline mini-swe-agent is included as git submodule.
 After cloning the project and checking out this branch, additionally run: ```git submodule update --init --recursive```.
 
-#### Building the NullAwayAnnotator
+Set the environment variable `OPENAI_KEY`.  
 
-Java 17 is required and expected to be located at /usr/lib/jvm/java-1.17.0-openjdk-amd64, set JAVA_HOME respectively.  
+Then reopen the project in a devcontainer using the VSCode Dev Container extension. All needed dependencies and setup steps are then executed automatically.  
 
-The NullRepair and baseline setup requires NullAway at version `0.12.4-SNAPSHOT` from this [repo](https://github.com/nimakarimipour/NullAway.git) built at this commit: `d0c7d8390964ee5dc95d6bf93ae76b85913b2342`.  
-To do so, clone the repository and checkout the commit.  
-
-NullAway requires the android-sdk, and we expect it to be located at /usr/lib/android-sdk.  
-Also, for running the build the licenses for used android-sdk packages need to be accepted.  
-Then run the build with:  
-```bash
-./gradlew build -x test
-./gradlew publishToMavenLocal
-```
-
-Next, go back to this project and build it:  
-```./gradlew build -x test```
-
-#### Initializing mini-swe-agent
-
-Create a virtual environment:  
-```python3 -m venv .venv```  
-Activate environment (needs to be reactivated in each new session):  
-```source .venv/bin/activate```  
-
-Install dependencies for mini-swe-agent:  
-```pip install -e mini-swe-agent-for-nullaway-codefix```  
-
-Configure mini-swe-agent with OPENAI_API_KEY:  
+For the first time, also configure mini-swe-agent with OPENAI_API_KEY:  
 ```mini-extra config setup```  
 1. Choose any default model (e.g., openai/gpt-4o). This default will be ignored by the benchmark.  
 2. Enter the API key name for using OPENAI: OPENAI_API_KEY  
 3. Provide your API key value. 
 
-Then the configuration has been saved locally.
+Then the configuration has been saved.
 
-Then build the docker image for mini-swe-agent:  
-```docker build -t joos/minisweagent_for_nullrepair mini-swe-agent-for-nullaway-codefix/src/minisweagent/environments```
+
+When reopening the DevContainer at a later point, without rebuilding it, you need to activate the Python environment again:  
+```source .venv/bin/activate```  
 
 
 ### Running the benchmark
-
-In addition to setting the OpenAI key for mini-swe-agent the key also has to be set as a system environment variable:  
-```export OPENAI_KEY=...```  
-Watch out for the differing variable name here.  
 
 The target projects must be used with their specially setup branches for evaluation. See for example [https://github.com/Pascal-Joos/eureka](https://github.com/Pascal-Joos/eureka).  
 For running the benchmark the target project has to be cloned using ssh (or be configured to use ssh afterwards).  

@@ -169,7 +169,7 @@ public class Main {
     if (benchmark == null) {
       throw new IllegalArgumentException("Unknown benchmark: " + benchmarkName);
     }
-    String PROJECT_PATH = "/home/joos/projects/nullrepair/nullness-benchmarks/" + benchmark.path;
+    String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
     deleteOutDir(benchmark);
     String[] argsArray = {
       "-d",
@@ -240,7 +240,7 @@ public class Main {
   }
 
   public static void deleteOutDir(Benchmark benchmark) {
-    String PROJECT_PATH = "/home/joos/projects/nullrepair/nullness-benchmarks/" + benchmark.path;
+    String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
     // delete dir
     Path outDir = Paths.get(PROJECT_PATH + "/annotator-out/0");
     if (outDir.toFile().exists()) {
