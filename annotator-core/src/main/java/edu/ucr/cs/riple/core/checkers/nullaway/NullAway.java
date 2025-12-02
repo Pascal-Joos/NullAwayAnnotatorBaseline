@@ -719,7 +719,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     System.out.println("Logging ChatGPT token usage...");
 
     String metricsHeader =
-        "ID\tPROMPTS_COUNT\tUNCACHED_PROMPTS_TOKENS\tCACHED_PROMPTS_TOKENS\tRESPONSES_TOKENS\tTOTAL_TOKENS\tCOST_IN_DOLLARS";
+        "ID\tPROMPTS_COUNT\tUNCACHED_PROMPTS_TOKENS\tCACHED_PROMPTS_TOKENS\tRESPONSES_TOKENS\tTOTAL_TOKENS\tCOST_IN_DOLLARS\tMODEL_NAME";
     Path tokenUsagePath = config.logPath.getParent().resolve("token-usages.tsv");
     if (Files.notExists(tokenUsagePath)) {
       TSVFiles.initialize(tokenUsagePath, metricsHeader);
@@ -731,14 +731,15 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
             tokenUsage.getCompletionTokens());
     String row =
         String.format(
-            "%d\t%d\t%d\t%d\t%d\t%d\t%f",
+            "%d\t%d\t%d\t%d\t%d\t%d\t%f\t%s",
             counter.get(),
             promptCounts,
             tokenUsage.getUncachedPromptTokens(),
             tokenUsage.getCachedPromptTokens(),
             tokenUsage.getCompletionTokens(),
             tokenUsage.getTotalTokens(),
-            cost);
+            cost,
+            config.modelName);
 
     TSVFiles.addRow(row, tokenUsagePath);
   }
