@@ -189,7 +189,7 @@ public class Config {
   public boolean isTestMode = System.getProperty("ANNOTATOR_TEST_MODE") != null;
   public boolean combined = false;
 
-  public String modelName = "openai/gpt-4o";
+  public String modelName = "openai/gpt-5.1";
   public double agentCostLimit = 0.5;
   public int agentCycleLimit = 50;
 
