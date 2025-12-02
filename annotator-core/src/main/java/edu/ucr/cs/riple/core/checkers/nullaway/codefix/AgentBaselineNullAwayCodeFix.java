@@ -93,6 +93,8 @@ public class AgentBaselineNullAwayCodeFix extends NullAwayCodeFix {
             "-y",
             "-l",
             Double.toString(context.config.agentCostLimit),
+            "-s",
+            Integer.toString(context.config.agentCycleLimit),
             "--exit-immediately",
             "-o",
             context

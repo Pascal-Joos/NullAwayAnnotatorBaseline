@@ -191,6 +191,7 @@ public class Config {
 
   public String modelName = "openai/gpt-4o";
   public double agentCostLimit = 0.5;
+  public int agentCycleLimit = 50;
 
   public String branchName() {
     return (String.format("nimak/agentic-%s-%s", resolveRemainingErrorMode.name(), Main.VERSION)
