@@ -188,6 +188,25 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats])
 
     rows = [s.finalize() for s in stats_per_benchmark]
 
+    # Aggregate totals for the 'total' row
+    total_stats = BenchmarkStats(project="total")
+    for s in stats_per_benchmark:
+        # Aggregate all fields except project and averages
+        total_stats.total_target_errors += s.total_target_errors
+        total_stats.generated_patches += s.generated_patches
+        total_stats.error_introducing_patches += s.error_introducing_patches
+        total_stats.resolving_patches += s.resolving_patches
+        total_stats.resolving_patches_and_no_new_errors += s.resolving_patches_and_no_new_errors
+        total_stats.trigger_new_error_patches += s.trigger_new_error_patches
+        total_stats.failing_test_patches += s.failing_test_patches
+        total_stats.total_execution_time_sec += s.total_execution_time_sec
+        total_stats.full_scaffold_execution_time_in_sec += s.full_scaffold_execution_time_in_sec
+        total_stats.total_agent_cycles += s.total_agent_cycles
+        total_stats.total_tokens += s.total_tokens
+        total_stats.total_monetary_cost += s.total_monetary_cost
+
+    total_row = total_stats.finalize()
+
     fieldnames = [
         "project",
         "total_target_errors",
@@ -213,6 +232,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats])
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
+        writer.writerow(total_row)
 
 
 def main() -> None:
