@@ -107,7 +107,7 @@ public class Main {
             "conductor-core:test"));
     benchmarks.put(
         "EventBus", new Benchmark("org.greenrobot.eventbus", "EventBus", "compileJava", "test"));
-    // TODO: Check if this test command is correct
+    // The glide test library:test only runs tests relevant to the library module. Other tests in the project are not run by the test command.
     benchmarks.put(
         "glide",
         new Benchmark(
