@@ -91,9 +91,9 @@ public class Main {
   static {
     benchmarks = new HashMap<>();
     benchmarks.put(
-        "libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava", "gdx:test"));
+        "libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava", "test"));
     benchmarks.put(
-        "zuul", new Benchmark("com.netflix", "zuul", "zuul-core:compileJava", "zuul-core:test"));
+        "zuul", new Benchmark("com.netflix", "zuul", "zuul-core:compileJava", "test"));
     benchmarks.put(
         "eureka",
         new Benchmark(
@@ -113,7 +113,7 @@ public class Main {
         new Benchmark(
             "com.bumptech.glide", "glide", "library:compileDebugJavaWithJavac", "library:test"));
     benchmarks.put(
-        "jadx", new Benchmark("jadx.core", "jadx", "jadx-core:compileJava", "jadx-core:test"));
+        "jadx", new Benchmark("jadx.core", "jadx", "jadx-core:compileJava", "test"));
     benchmarks.put(
         "litiengine",
         new Benchmark("de.gurkenlabs.litiengine", "litiengine", "compileJava", "test"));
@@ -124,10 +124,10 @@ public class Main {
             "org.springframework.boot",
             "spring-boot",
             ":spring-boot-project:spring-boot:compileJava",
-            ":spring-boot-project:spring-boot:test"));
+            "test"));
     benchmarks.put("wala-util", new Benchmark("com.ibm.wala", "wala-util", "compileJava", "test"));
     benchmarks.put(
-        "gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava", ":gson:test"));
+        "gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava", "test"));
   }
 
   // PROJECT SPECIFIC CONFIGURATION
