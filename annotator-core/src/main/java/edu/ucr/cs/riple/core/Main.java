@@ -92,8 +92,7 @@ public class Main {
     benchmarks = new HashMap<>();
     benchmarks.put(
         "libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava", "test"));
-    benchmarks.put(
-        "zuul", new Benchmark("com.netflix", "zuul", "zuul-core:compileJava", "test"));
+    benchmarks.put("zuul", new Benchmark("com.netflix", "zuul", "zuul-core:compileJava", "test"));
     benchmarks.put(
         "eureka",
         new Benchmark(
@@ -107,13 +106,13 @@ public class Main {
             "conductor-core:test"));
     benchmarks.put(
         "EventBus", new Benchmark("org.greenrobot.eventbus", "EventBus", "compileJava", "test"));
-    // The glide test library:test only runs tests relevant to the library module. Other tests in the project are not run by the test command.
+    // The glide test library:test only runs tests relevant to the library module. Other tests in
+    // the project are not run by the test command.
     benchmarks.put(
         "glide",
         new Benchmark(
             "com.bumptech.glide", "glide", "library:compileDebugJavaWithJavac", "library:test"));
-    benchmarks.put(
-        "jadx", new Benchmark("jadx.core", "jadx", "jadx-core:compileJava", "test"));
+    benchmarks.put("jadx", new Benchmark("jadx.core", "jadx", "jadx-core:compileJava", "test"));
     benchmarks.put(
         "litiengine",
         new Benchmark("de.gurkenlabs.litiengine", "litiengine", "compileJava", "test"));
@@ -126,8 +125,7 @@ public class Main {
             ":spring-boot-project:spring-boot:compileJava",
             "test"));
     benchmarks.put("wala-util", new Benchmark("com.ibm.wala", "wala-util", "compileJava", "test"));
-    benchmarks.put(
-        "gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava", "test"));
+    benchmarks.put("gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava", "test"));
   }
 
   // PROJECT SPECIFIC CONFIGURATION
