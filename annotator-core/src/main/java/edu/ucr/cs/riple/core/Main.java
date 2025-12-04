@@ -169,6 +169,20 @@ public class Main {
     }
     String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
     deleteOutDir(benchmark);
+
+    String fullTestCommand =
+        String.format(
+            "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk ./gradlew %s -Derrorprone.disable=true",
+            PROJECT_PATH, benchmark.testCommand);
+
+    // Special handling for benchmarks that require a screen (e.g., litiengine)
+    if (benchmarkName.equals("litiengine")) {
+      fullTestCommand =
+          String.format(
+              "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk xvfb-run --auto-servernum --server-args='-screen 0 1024x768x24' ./gradlew %s -Derrorprone.disable=true",
+              PROJECT_PATH, benchmark.testCommand);
+    }
+
     String[] argsArray = {
       "-d",
       String.format("%s/annotator-out", PROJECT_PATH),
@@ -177,9 +191,7 @@ public class Main {
           "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk ./gradlew %s",
           PROJECT_PATH, benchmark.buildCommand),
       "-tc",
-      String.format(
-          "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk ./gradlew %s -Derrorprone.disable=true",
-          PROJECT_PATH, benchmark.testCommand),
+      fullTestCommand,
       "-cp",
       String.format("%s/paths.tsv", PROJECT_PATH),
       "-i",

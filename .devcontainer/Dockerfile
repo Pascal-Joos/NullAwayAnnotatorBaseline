@@ -1,5 +1,5 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
-RUN apt-get update && apt-get install -y python3 python3-pip python3-venv git openjdk-11-jdk-headless openjdk-17-jdk-headless android-sdk wget curl
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv git openjdk-11-jdk-headless openjdk-17-jdk-headless openjdk-17-jre openjdk-17-jdk android-sdk wget curl xvfb
 
 # Copy Android SDK licenses
 COPY ./docker_files/licenses /usr/lib/android-sdk/licenses
