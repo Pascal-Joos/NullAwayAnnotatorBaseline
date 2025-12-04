@@ -517,7 +517,9 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
             "new_build_output.txt",
             "new_build.log",
             "new_build.txt",
-            "initial_build_output.log");
+            "initial_build_output.log",
+            "initial_nullaway_only.log",
+            "new_nullaway_only.log");
     for (String fileName : commonBuildOutputFileNames) {
       try {
         Files.deleteIfExists(context.config.benchmarkPath.resolve(fileName));
