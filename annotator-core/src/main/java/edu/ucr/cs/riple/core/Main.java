@@ -91,7 +91,7 @@ public class Main {
   static {
     benchmarks = new HashMap<>();
     benchmarks.put(
-        "libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava", "test"));
+        "libgdx", new Benchmark("com.badlogic.gdx", "libgdx", "gdx:compileJava", "gdx:test"));
     benchmarks.put("zuul", new Benchmark("com.netflix", "zuul", "zuul-core:compileJava", "test"));
     benchmarks.put(
         "eureka",
