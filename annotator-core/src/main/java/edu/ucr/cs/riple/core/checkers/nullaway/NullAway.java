@@ -507,25 +507,20 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
   }
 
   private void cleanBuildOutputFiles(Context context) {
-    List<String> commonBuildOutputFileNames =
-        List.of(
-            "build_output.log",
-            "build_output.txt",
-            "build.log",
-            "build.txt",
-            "new_build_output.log",
-            "new_build_output.txt",
-            "new_build.log",
-            "new_build.txt",
-            "initial_build_output.log",
-            "initial_nullaway_only.log",
-            "new_nullaway_only.log");
-    for (String fileName : commonBuildOutputFileNames) {
-      try {
-        Files.deleteIfExists(context.config.benchmarkPath.resolve(fileName));
-      } catch (IOException e) {
-        logger.error("Error while deleting build output log file {}: {}", fileName, e);
-      }
+    // Delete any *.log file in the benchmarkPath directory.
+    try {
+      Files.list(context.config.benchmarkPath)
+          .filter(path -> path.getFileName().toString().endsWith(".log"))
+          .forEach(
+              path -> {
+                try {
+                  Files.deleteIfExists(path);
+                } catch (IOException e) {
+                  logger.error("Error while deleting log file {}: {}", path.getFileName(), e);
+                }
+              });
+    } catch (IOException e) {
+      logger.error("Error while listing files in benchmarkPath: {}", e);
     }
   }
 
