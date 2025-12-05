@@ -457,38 +457,52 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                     }
 
                     logger.trace("{} : TOP LEVEL CALL TO FIX ERROR: {}", counter.get(), error);
-                    Set<RegionRewrite> changes;
+                    Set<RegionRewrite> changes = Set.of();
                     boolean success = true;
                     CommandResult initialBuildResult = Utility.buildTarget(context, true);
                     if (config.resolveRemainingErrorMode.isAgentBaseline()) {
                       logInitialBuildOutputToFile(initialBuildResult);
                     }
-                    int before =
+                    Set<NullAwayError> errorsBefore =
                         Utility.readErrorsFromOutputDirectory(
-                                context, context.targetModuleInfo, NullAwayError.class)
-                            .size();
-                    try {
-                      // AgentBaselineNullAwayCodeFix returns an empty set of changes, as the
-                      // agent makes modifications to the code directly.
-                      changes = codeFix.fix(error, counter.get());
-                      System.out.println("Finished processing.");
-                    } catch (Exception e) {
-                      changes = Set.of();
-                      success = false;
-                      System.err.println(
-                          "Error while fixing-------: " + e.getMessage() + " \n " + e);
-                      e.printStackTrace(System.out);
-                      logger.trace(
-                          "--------Exception occurred in computing fix-------- | {}",
-                          counter.get(),
-                          e);
-                      try (GitUtility git = GitUtility.instance(config)) {
-                        git.resetHard();
-                      } catch (Exception ex) {
-                        System.err.println("Error while resetting: " + ex.getMessage());
-                      }
+                            context, context.targetModuleInfo, NullAwayError.class);
+
+                    int before = errorsBefore.size();
+
+                    boolean alreadyResolved = false;
+                    if (config.combined) {
+                      // Check if the error is already resolved. This can happen if another error
+                      // resolution fixes multiple errors. Then skip this run and log it to the
+                      // metrics.
+                      alreadyResolved = errorsBefore.stream().noneMatch(e -> e.equals(error));
                     }
-                    codeFix.apply(changes);
+                    if (!alreadyResolved) {
+                      try {
+                        // AgentBaselineNullAwayCodeFix returns an empty set of changes, as the
+                        // agent makes modifications to the code directly.
+                        changes = codeFix.fix(error, counter.get());
+                        System.out.println("Finished processing.");
+                      } catch (Exception e) {
+                        changes = Set.of();
+                        success = false;
+                        System.err.println(
+                            "Error while fixing-------: " + e.getMessage() + " \n " + e);
+                        e.printStackTrace(System.out);
+                        logger.trace(
+                            "--------Exception occurred in computing fix-------- | {}",
+                            counter.get(),
+                            e);
+                        try (GitUtility git = GitUtility.instance(config)) {
+                          git.resetHard();
+                        } catch (Exception ex) {
+                          System.err.println("Error while resetting: " + ex.getMessage());
+                        }
+                      }
+                      codeFix.apply(changes);
+                    } else {
+                      System.out.println("Error already resolved, skipping fix application.");
+                      logger.trace("Error already resolved, skipping fix application.");
+                    }
 
                     // Log time taken, excluding committing the changes and calculating metrics.
                     long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
@@ -502,7 +516,13 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       previousLineNumber.set(currentLineNumber);
 
                       postProcessFixedError(
-                          error, before, elapsedTimePerError, counter, log, success);
+                          error,
+                          before,
+                          elapsedTimePerError,
+                          counter,
+                          log,
+                          success,
+                          alreadyResolved);
                     }
                   });
             });
@@ -555,7 +575,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
       long elapsedTimePerError,
       AtomicInteger counter,
       String log,
-      boolean success) {
+      boolean success,
+      boolean alreadyResolved) {
 
     if (success) {
       Utility.executeCommand(
@@ -583,85 +604,88 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
 
     System.out.println("Calculating run metrics...");
 
-    try (GitUtility git = GitUtility.instance(config)) {
-      if (success && git.hasChangesToCommit()) {
-        patchGenerated = true;
+    if (!alreadyResolved) {
+
+      try (GitUtility git = GitUtility.instance(config)) {
+        if (success && git.hasChangesToCommit()) {
+          patchGenerated = true;
+        }
+      } catch (Exception ex) {
+        System.err.println("Error while checking git changes: " + ex.getMessage());
       }
-    } catch (Exception ex) {
-      System.err.println("Error while checking git changes: " + ex.getMessage());
-    }
 
-    int after = Integer.MAX_VALUE;
+      int after = Integer.MAX_VALUE;
 
-    if (patchGenerated) {
+      if (patchGenerated) {
 
-      try {
+        try {
+          context.targetModuleInfo.getModuleConfiguration().stream()
+              .map(configuration -> configuration.dir.resolve("errors.json"))
+              .forEach(
+                  path -> {
+                    try {
+                      Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                      throw new RuntimeException(e);
+                    }
+                  });
+          // Build target after applying the fix, to check for remaining errors.
+          Utility.buildTarget(context, false);
+
+        } catch (Exception e) {
+          System.out.println("Patch caused compilation error, setting after to max value.");
+          after = Integer.MAX_VALUE;
+          compilationErrorIntroduced = true;
+        }
+
+        // If the json file was not created, this indicates that compilation failed before running
+        // NullAway.
+        AtomicBoolean compilationErrorIntroducedHolder =
+            new AtomicBoolean(compilationErrorIntroduced);
         context.targetModuleInfo.getModuleConfiguration().stream()
             .map(configuration -> configuration.dir.resolve("errors.json"))
             .forEach(
                 path -> {
-                  try {
-                    Files.deleteIfExists(path);
-                  } catch (IOException e) {
-                    throw new RuntimeException(e);
+                  if (!Files.exists(path)) {
+                    System.out.println(
+                        "Patch caused compilation error, identified by missing errors.json file.");
+                    compilationErrorIntroducedHolder.set(true);
                   }
                 });
-        // Build target after applying the fix, to check for remaining errors.
-        Utility.buildTarget(context, false);
+        compilationErrorIntroduced = compilationErrorIntroducedHolder.get();
 
-      } catch (Exception e) {
-        System.out.println("Patch caused compilation error, setting after to max value.");
-        after = Integer.MAX_VALUE;
-        compilationErrorIntroduced = true;
-      }
+        if (!compilationErrorIntroduced) {
+          Set<NullAwayError> remainingNullAwayErrors =
+              Utility.readErrorsFromOutputDirectory(
+                  context, context.targetModuleInfo, NullAwayError.class);
+          after = remainingNullAwayErrors.size();
 
-      // If the json file was not created, this indicates that compilation failed before running
-      // NullAway.
-      AtomicBoolean compilationErrorIntroducedHolder =
-          new AtomicBoolean(compilationErrorIntroduced);
-      context.targetModuleInfo.getModuleConfiguration().stream()
-          .map(configuration -> configuration.dir.resolve("errors.json"))
-          .forEach(
-              path -> {
-                if (!Files.exists(path)) {
-                  System.out.println(
-                      "Patch caused compilation error, identified by missing errors.json file.");
-                  compilationErrorIntroducedHolder.set(true);
-                }
-              });
-      compilationErrorIntroduced = compilationErrorIntroducedHolder.get();
+          // This equality check seems to be robust against moving lines in the
+          // error
+          targetErrorResolved = remainingNullAwayErrors.stream().noneMatch(e -> e.equals(error));
 
-      if (!compilationErrorIntroduced) {
-        Set<NullAwayError> remainingNullAwayErrors =
-            Utility.readErrorsFromOutputDirectory(
-                context, context.targetModuleInfo, NullAwayError.class);
-        after = remainingNullAwayErrors.size();
+          if (targetErrorResolved) {
+            // target error removed implies already equality of after and before
+            // indicates
+            // triggering a new error, as expected would be before - 1
+            triggeredNewErrors = after >= before;
+          } else {
+            triggeredNewErrors = after > before;
+          }
 
-        // This equality check seems to be robust against moving lines in the
-        // error
-        targetErrorResolved = remainingNullAwayErrors.stream().noneMatch(e -> e.equals(error));
+          if (targetErrorResolved && !triggeredNewErrors) {
+            targetErrorResolvedWithoutNewErrors = true;
+          }
 
-        if (targetErrorResolved) {
-          // target error removed implies already equality of after and before
-          // indicates
-          // triggering a new error, as expected would be before - 1
-          triggeredNewErrors = after >= before;
-        } else {
-          triggeredNewErrors = after > before;
-        }
-
-        if (targetErrorResolved && !triggeredNewErrors) {
-          targetErrorResolvedWithoutNewErrors = true;
-        }
-
-        // Check if tests fail, only if no compilation error is introduced, else it stays false.
-        if (!config.combined) {
-          failingTests = checkForTestFailures(error, counter);
+          // Check if tests fail, only if no compilation error is introduced, else it stays false.
+          if (!config.combined) {
+            failingTests = checkForTestFailures(error, counter);
+          }
         }
       }
+
+      commitChanges(error, counter, before, after, success, patchGenerated);
     }
-
-    commitChanges(error, counter, before, after, success, patchGenerated);
 
     logMetricsForCreatedFix(
         config.combined,
@@ -672,7 +696,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
         targetErrorResolvedWithoutNewErrors,
         triggeredNewErrors,
         elapsedTimePerError,
-        failingTests);
+        failingTests,
+        alreadyResolved);
   }
 
   private void writeLogFile(NullAwayError error, AtomicInteger counter, String log) {
@@ -850,24 +875,26 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
       boolean targetErrorResolvedWithoutNewErrors,
       boolean triggeredNewErrors,
       long elapsedTimePerError,
-      boolean failingTests) {
+      boolean failingTests,
+      boolean alreadyResolved) {
 
     String metricsHeader;
     String row;
     if (combinedMode) {
 
       metricsHeader =
-          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS";
+          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tALREADY_RESOLVED";
       row =
           String.format(
-              "%d\t%b\t%b\t%b\t%b\t%b\t%d",
+              "%d\t%b\t%b\t%b\t%b\t%b\t%d\t%b",
               id,
               patchGenerated,
               compilationErrorIntroduced,
               targetErrorResolved,
               targetErrorResolvedWithoutNewErrors,
               triggeredNewErrors,
-              elapsedTimePerError);
+              elapsedTimePerError,
+              alreadyResolved);
     } else {
       metricsHeader =
           "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tFAILING_TESTS";
