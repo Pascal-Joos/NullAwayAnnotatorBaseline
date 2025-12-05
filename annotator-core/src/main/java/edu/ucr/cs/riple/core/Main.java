@@ -144,6 +144,12 @@ public class Main {
     boolean isDisabled = args.length > 1 && args[1].equals("disable");
     boolean verbose = Arrays.asList(args).contains("verbose");
     boolean combined = Arrays.asList(args).contains("--combined");
+    boolean continueRun = Arrays.asList(args).contains("--continueRunAtError");
+    int continueRunAtError = -1;
+    if (continueRun) {
+      continueRunAtError =
+          Integer.parseInt(args[Arrays.asList(args).indexOf("--continueRunAtError") + 1]);
+    }
     System.clearProperty("ANNOTATOR_TEST_MODE");
     String mode;
     if (isDisabled) {
@@ -208,7 +214,9 @@ public class Main {
       // "-rboserr", // redirect build output stream and error stream
       verbose ? "-rboserr" : "",
       "--depth",
-      "6"
+      "6",
+      continueRun ? "--continueRunAtError" : "",
+      continueRun ? String.valueOf(continueRunAtError) : ""
     };
 
     Config config = new Config(argsArray);
@@ -223,14 +231,19 @@ public class Main {
     // reset git repo
     try (GitUtility git = GitUtility.instance(config)) {
       git.resetHard();
-      git.safePull();
-      git.checkoutBranch("nimak/auto-code-fix");
-      git.resetHard();
-      git.pull();
-      git.deleteLocalBranch(config.branchName());
-      git.deleteRemoteBranch(config.branchName());
-      git.createAndCheckoutBranch(config.branchName());
-      git.pushBranch(config.branchName());
+      if (!config.continueRun) {
+        git.safePull();
+        git.checkoutBranch("nimak/auto-code-fix");
+        git.resetHard();
+        git.pull();
+        git.deleteLocalBranch(config.branchName());
+        git.deleteRemoteBranch(config.branchName());
+        git.createAndCheckoutBranch(config.branchName());
+        git.pushBranch(config.branchName());
+      } else {
+        git.checkoutBranch(config.branchName());
+        git.resetHard();
+      }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -290,7 +303,8 @@ public class Main {
             "Desktop",
             "logs",
             config.benchmarkName,
-            config.branchName().split("/")[1]);
+            config.branchName().split("/")[1]
+                + (config.continueRun ? "_continueAtError_" + config.continueRunAtError : ""));
     System.out.println("Root path for logs: " + root);
     // Delete log
     try {

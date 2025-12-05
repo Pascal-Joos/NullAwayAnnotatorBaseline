@@ -426,6 +426,13 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                     long timerPerError = System.currentTimeMillis();
 
                     counter.incrementAndGet();
+
+                    if (config.continueRun && counter.get() < config.continueRunAtError) {
+                      logger.trace(
+                          "{} : SKIPPING ERROR DUE TO CONTINUE RUN FLAG: {}", counter.get(), error);
+                      return;
+                    }
+
                     System.out.println(counter.get() + " : TOP LEVEL CALL TO FIX ERROR: " + error);
                     logger.trace("=".repeat(30));
                     logger.trace("CHATGPT.COUNT = {}", ChatGPT.count);

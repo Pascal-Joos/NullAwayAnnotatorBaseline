@@ -150,6 +150,11 @@ public class Config {
   /** Depth of the analysis. Default to 5 if not set by the user */
   public int depth;
 
+  /** If true, continue the run at the given error number instead of starting from the beginning. */
+  public boolean continueRun;
+
+  public int continueRunAtError;
+
   /**
    * Activates inference to add {@code @Nullable} qualifiers.
    *
@@ -536,6 +541,15 @@ public class Config {
     annotatedPackagesOption.setRequired(false);
     options.addOption(annotatedPackagesOption);
 
+    Option continueRunAtErrOption =
+        new Option(
+            "crae",
+            "continueRunAtError",
+            true,
+            "Continue the run at the given error number instead of starting from the beginning. Log files are not overwritten and the branch history is not cleared.");
+    continueRunAtErrOption.setRequired(false);
+    options.addOption(continueRunAtErrOption);
+
     HelpFormatter formatter = new HelpFormatter();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
@@ -645,6 +659,9 @@ public class Config {
       throw new IllegalArgumentException(
           "Annotated packages prefix must be provided when resolving remaining errors.");
     }
+    this.continueRun = cmd.hasOption(continueRunAtErrOption);
+    this.continueRunAtError =
+        this.continueRun ? Integer.parseInt(cmd.getOptionValue(continueRunAtErrOption)) : -1;
   }
 
   /**
