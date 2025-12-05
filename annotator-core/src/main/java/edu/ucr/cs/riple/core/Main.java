@@ -126,6 +126,7 @@ public class Main {
             "test"));
     benchmarks.put("wala-util", new Benchmark("com.ibm.wala", "wala-util", "compileJava", "test"));
     benchmarks.put("gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava", "test"));
+    benchmarks.put("mockito", new Benchmark("org.mockito", "mockito", "compileJava", "test"));
   }
 
   // PROJECT SPECIFIC CONFIGURATION
