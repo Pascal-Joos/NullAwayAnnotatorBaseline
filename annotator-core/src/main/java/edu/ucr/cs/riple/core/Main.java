@@ -123,7 +123,7 @@ public class Main {
             "org.springframework.boot",
             "spring-boot",
             ":spring-boot-project:spring-boot:compileJava",
-            "test"));
+            ":spring-boot-project:spring-boot:test"));
     benchmarks.put("wala-util", new Benchmark("com.ibm.wala", "wala-util", "compileJava", "test"));
     benchmarks.put("gson", new Benchmark("com.google.gson", "gson", ":gson:compileJava", "test"));
     benchmarks.put("mockito", new Benchmark("org.mockito", "mockito", "compileJava", "test"));
