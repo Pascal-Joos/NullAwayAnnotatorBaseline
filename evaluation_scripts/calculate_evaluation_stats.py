@@ -13,10 +13,8 @@ class BenchmarkStats:
     generated_patches: int = 0
     error_introducing_patches: int = 0
     resolving_patches: int = 0
-    resolving_patches: int = 0
     resolving_patches_and_no_new_errors: int = 0
     trigger_new_error_patches: int = 0
-    failing_test_patches: int = 0
     total_execution_time_sec: float = 0.0
     full_scaffold_execution_time_in_sec: float = 0.0
     total_agent_cycles: int = 0
@@ -41,8 +39,6 @@ class BenchmarkStats:
         if patch.get("triggers_new_error"):
             self.trigger_new_error_patches += 1
 
-        if patch.get("has_failing_tests"):
-            self.failing_test_patches += 1
 
         self.total_execution_time_sec += float(patch.get("execution_time_sec", 0.0))
         self.total_agent_cycles += int(patch.get("agent_cycles", 0))
@@ -64,6 +60,27 @@ class BenchmarkStats:
             data["avg_monetary_cost"] = 0.0
 
         return data
+
+@dataclass
+class BenchmarkStatsNonCombined(BenchmarkStats):
+    failing_test_patches: int = 0
+
+    def aggregate_from_patch(self, patch):
+        super().aggregate_from_patch(patch)
+        if patch.get("has_failing_tests"):
+            self.failing_test_patches += 1
+
+        
+
+@dataclass
+class BenchmarkStatsCombined(BenchmarkStats):
+    total_test_failures: int = -1
+    remaining_errors: int = 1_000_000
+
+    def aggregate_from_patch(self, patch):
+        super().aggregate_from_patch(patch)
+        self.remaining_errors = min(self.remaining_errors, patch.get("remaining_errors", self.remaining_errors))
+    
 
 
 def parse_metrics_tsv(path: str) -> List[Dict]:
@@ -89,6 +106,18 @@ def parse_timers_tsv(path: str) -> float:
                 return float(row.get("TIME_IN_MILLIS", 0.0))
             except (TypeError, ValueError):
                 return 0.0
+            
+def parse_total_test_failures_tsv(path: str) -> int:
+    if not os.path.exists(path):
+        return -1
+
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            try:
+                return int(row.get("TOTAL_TEST_FAILURES", -1))
+            except (TypeError, ValueError):
+                return -1
 
 # Only applies to agent_baseline mode    
 def parse_agent_logs_agent_baseline(log_dir: str) -> Dict[str, Dict]:
@@ -140,11 +169,14 @@ def parse_token_usage_log(path: str) -> Dict[str, Dict]:
 
 
 
-def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: str, code_fix_mode: str) -> BenchmarkStats:
+def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: str, code_fix_mode: str, combined: bool) -> BenchmarkStats:
     benchmark_dir = os.path.join(log_root, benchmark)
     config_dir = os.path.join(benchmark_dir, config_subdir)
 
-    stats = BenchmarkStats(project=benchmark)
+    if combined:
+        stats = BenchmarkStatsCombined(project=benchmark)
+    else:
+        stats = BenchmarkStatsNonCombined(project=benchmark)
 
     metrics_path = os.path.join(config_dir, "metrics.tsv")
     timers_path = os.path.join(config_dir, "timers.tsv")
@@ -152,6 +184,10 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
     metrics_rows = parse_metrics_tsv(metrics_path)
     full_scaffold_execution_time_in_millis = parse_timers_tsv(timers_path)
     stats.full_scaffold_execution_time_in_sec = full_scaffold_execution_time_in_millis / 1000.0
+
+    if combined:
+        total_test_failures = parse_total_test_failures_tsv(os.path.join(config_dir, "total-test-failures.tsv"))
+        stats.total_test_failures = total_test_failures
 
     if code_fix_mode == "agent_baseline":
         agent_info = parse_agent_logs_agent_baseline(config_dir)
@@ -169,7 +205,9 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
         patch_record["resolves_error"] = row.get("TARGET_ERROR_RESOLVED", "false").lower() == "true"
         patch_record["resolves_error_and_no_new_errors"] = (row.get("TARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS", "false").lower() == "true")
         patch_record["triggers_new_error"] = row.get("TRIGGERED_NEW_ERRORS", "false").lower() == "true"
+        
         patch_record["has_failing_tests"] = row.get("FAILING_TESTS", "false").lower() == "true"
+        patch_record["remaining_errors"] = int(row.get("REMAINING_ERRORS", 1_000_000))
 
         patch_record["execution_time_sec"] = float(row.get("EXECUTION_TIME_IN_MILLIS")) / 1000.0 if row.get("EXECUTION_TIME_IN_MILLIS") is not None else 0.0
         
@@ -182,14 +220,23 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
     return stats
 
 
-def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats]) -> None:
+def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats], combined: bool) -> None:
     if not stats_per_benchmark:
         return
 
     rows = [s.finalize() for s in stats_per_benchmark]
 
     # Aggregate totals for the 'total' row
-    total_stats = BenchmarkStats(project="total")
+    if combined:
+        total_stats = BenchmarkStatsCombined(project="total")
+    else:
+        total_stats = BenchmarkStatsNonCombined(project="total")
+
+
+    if combined:
+        total_stats.remaining_errors = 0
+        total_stats.total_test_failures = 0
+
     for s in stats_per_benchmark:
         # Aggregate all fields except project and averages
         total_stats.total_target_errors += s.total_target_errors
@@ -198,7 +245,14 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats])
         total_stats.resolving_patches += s.resolving_patches
         total_stats.resolving_patches_and_no_new_errors += s.resolving_patches_and_no_new_errors
         total_stats.trigger_new_error_patches += s.trigger_new_error_patches
-        total_stats.failing_test_patches += s.failing_test_patches
+
+        if combined:
+            
+            total_stats.remaining_errors += s.remaining_errors
+            total_stats.total_test_failures += s.total_test_failures
+        else:
+            total_stats.failing_test_patches += s.failing_test_patches
+
         total_stats.total_execution_time_sec += s.total_execution_time_sec
         total_stats.full_scaffold_execution_time_in_sec += s.full_scaffold_execution_time_in_sec
         total_stats.total_agent_cycles += s.total_agent_cycles
@@ -207,25 +261,48 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats])
 
     total_row = total_stats.finalize()
 
-    fieldnames = [
-        "project",
-        "total_target_errors",
-        "generated_patches",
-        "error_introducing_patches",
-        "resolving_patches",
-        "resolving_patches_and_no_new_errors",
-        "trigger_new_error_patches",
-        "failing_test_patches",
-        "total_execution_time_sec",
-        "avg_execution_time_sec",
-        "full_scaffold_execution_time_in_sec",
-        "total_agent_cycles",
-        "avg_agent_cycles",
-        "total_tokens",
-        "avg_tokens",
-        "total_monetary_cost",
-        "avg_monetary_cost",
-    ]
+    if not combined:
+        fieldnames = [
+            "project",
+            "total_target_errors",
+            "generated_patches",
+            "error_introducing_patches",
+            "resolving_patches",
+            "resolving_patches_and_no_new_errors",
+            "trigger_new_error_patches",
+            "failing_test_patches",
+            "total_execution_time_sec",
+            "avg_execution_time_sec",
+            "full_scaffold_execution_time_in_sec",
+            "total_agent_cycles",
+            "avg_agent_cycles",
+            "total_tokens",
+            "avg_tokens",
+            "total_monetary_cost",
+            "avg_monetary_cost",
+        ]
+    else:
+        fieldnames = [
+            "project",
+            "total_target_errors",
+            "generated_patches",
+            "error_introducing_patches",
+            "resolving_patches",
+            "resolving_patches_and_no_new_errors",
+            "trigger_new_error_patches",
+            "remaining_errors",
+            "total_test_failures",
+            "total_execution_time_sec",
+            "avg_execution_time_sec",
+            "full_scaffold_execution_time_in_sec",
+            "total_agent_cycles",
+            "avg_agent_cycles",
+            "total_tokens",
+            "avg_tokens",
+            "total_monetary_cost",
+            "avg_monetary_cost",
+        ]
+
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, delimiter="\t", fieldnames=fieldnames)
@@ -256,6 +333,11 @@ def main() -> None:
         help="Code fix mode used in the experiment (default: %(default)s)",
     )
     parser.add_argument(
+        "--combined",
+        action="store_true",
+        help="Combined mode flag",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="evaluation_stats.tsv",
@@ -270,14 +352,16 @@ def main() -> None:
             path = os.path.join(args.log_root, name)
             if not os.path.isdir(path):
                 continue
+            if not os.path.exists(os.path.join(path, args.config_subdir)):
+                continue
             benchmarks.append(name)
 
     stats_list: List[BenchmarkStats] = []
     for benchmark in sorted(benchmarks):
-        stats = collect_stats_for_benchmark(args.log_root, benchmark, args.config_subdir, args.code_fix_mode)
+        stats = collect_stats_for_benchmark(args.log_root, benchmark, args.config_subdir, args.code_fix_mode, args.combined)
         stats_list.append(stats)
 
-    write_stats_tsv(args.output, stats_list)
+    write_stats_tsv(args.output, stats_list, args.combined)
 
 
 if __name__ == "__main__":
