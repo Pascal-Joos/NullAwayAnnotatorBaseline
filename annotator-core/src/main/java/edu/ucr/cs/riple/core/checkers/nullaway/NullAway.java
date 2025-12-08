@@ -72,6 +72,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -535,8 +536,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
 
   private void cleanBuildOutputFiles(Context context) {
     // Delete any *.log file in the benchmarkPath directory.
-    try {
-      Files.list(context.config.benchmarkPath)
+    try (Stream<Path> stream = Files.list(context.config.benchmarkPath)) {
+      stream
           .filter(path -> path.getFileName().toString().endsWith(".log"))
           .forEach(
               path -> {
@@ -547,7 +548,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                 }
               });
     } catch (IOException e) {
-      logger.error("Error while listing files in benchmarkPath: {}", e);
+      logger.error(
+          "Error while listing files in benchmarkPath: {}", context.config.benchmarkPath, e);
     }
   }
 
@@ -604,6 +606,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
 
     System.out.println("Calculating run metrics...");
 
+    int after = Integer.MAX_VALUE;
+
     if (!alreadyResolved) {
 
       try (GitUtility git = GitUtility.instance(config)) {
@@ -613,8 +617,6 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
       } catch (Exception ex) {
         System.err.println("Error while checking git changes: " + ex.getMessage());
       }
-
-      int after = Integer.MAX_VALUE;
 
       if (patchGenerated) {
 
@@ -697,7 +699,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
         triggeredNewErrors,
         elapsedTimePerError,
         failingTests,
-        alreadyResolved);
+        alreadyResolved,
+        after);
   }
 
   private void writeLogFile(NullAwayError error, AtomicInteger counter, String log) {
@@ -876,17 +879,18 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
       boolean triggeredNewErrors,
       long elapsedTimePerError,
       boolean failingTests,
-      boolean alreadyResolved) {
+      boolean alreadyResolved,
+      int remainingErrors) {
 
     String metricsHeader;
     String row;
     if (combinedMode) {
 
       metricsHeader =
-          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tALREADY_RESOLVED";
+          "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tALREADY_RESOLVED\tREMAINING_ERRORS";
       row =
           String.format(
-              "%d\t%b\t%b\t%b\t%b\t%b\t%d\t%b",
+              "%d\t%b\t%b\t%b\t%b\t%b\t%d\t%b\t%d",
               id,
               patchGenerated,
               compilationErrorIntroduced,
@@ -894,7 +898,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
               targetErrorResolvedWithoutNewErrors,
               triggeredNewErrors,
               elapsedTimePerError,
-              alreadyResolved);
+              alreadyResolved,
+              remainingErrors);
     } else {
       metricsHeader =
           "ID\tPATCH_GENERATED\tCOMPILATION_ERROR_INTRODUCED\tTARGET_ERROR_RESOLVED\tTARGET_ERROR_RESOLVED_WITHOUT_NEW_ERRORS\tTRIGGERED_NEW_ERRORS\tEXECUTION_TIME_IN_MILLIS\tFAILING_TESTS";
