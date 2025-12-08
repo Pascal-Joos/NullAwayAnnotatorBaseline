@@ -191,6 +191,7 @@ public class Config {
   public Path metricsPath;
   public Path commitHashPath;
   public Path timerPath;
+  public Path combinedTestFailuresPath;
   public boolean isTestMode = System.getProperty("ANNOTATOR_TEST_MODE") != null;
   public boolean combined = false;
 

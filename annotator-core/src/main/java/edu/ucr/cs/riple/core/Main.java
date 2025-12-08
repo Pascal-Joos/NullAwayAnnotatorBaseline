@@ -348,6 +348,7 @@ public class Main {
     config.metricsPath = root.resolve("metrics.tsv");
     config.commitHashPath = root.resolve("commits.tsv");
     config.timerPath = root.resolve("timers.tsv");
+    config.combinedTestFailuresPath = root.resolve("total-test-failures.tsv");
     // or WARN if too noisy
     return root;
   }

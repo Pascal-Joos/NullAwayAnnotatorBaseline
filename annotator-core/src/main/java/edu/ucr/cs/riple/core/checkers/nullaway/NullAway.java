@@ -527,6 +527,14 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                     }
                   });
             });
+
+    if (config.combined) {
+      int totalTestFailures = checkTotalTestFailures();
+
+      TSVFiles.initialize(config.combinedTestFailuresPath, "TOTAL_TEST_FAILURES");
+      TSVFiles.addRow(String.valueOf(totalTestFailures), config.combinedTestFailuresPath);
+    }
+
     long elapsed = System.currentTimeMillis() - timer;
     if (config.actualRunEnabled()) {
       TSVFiles.initialize(config.timerPath, "TIME_IN_MILLIS");
@@ -805,6 +813,70 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     }
 
     return failingTests;
+  }
+
+  private int checkTotalTestFailures() {
+    boolean failingTests = false;
+
+    System.out.println("Running tests...");
+    Utility.CommandResult testResult;
+    try {
+
+      testResult =
+          Utility.executeCommandAndCaptureOutput(
+              config, String.format("cd %s && %s", config.benchmarkPath, config.testCommand));
+      if (testResult.exitCode != 0) {
+        failingTests = true;
+      }
+
+    } catch (Exception e) {
+      System.err.println("Error while running tests: " + e.getMessage());
+      return 0;
+    }
+
+    // Save test log to file
+    try {
+      Files.writeString(
+          config.logPath.getParent().resolve("test-log-combined.log"),
+          String.format(
+              "====================\nTest Exit Code: %d\nTest Output:\n%s\n",
+              testResult.exitCode, testResult.output),
+          Charset.defaultCharset());
+    } catch (Exception e) {
+      logger.trace("Error while writing test log to file: ", e);
+    }
+
+    int failingTestsCount = 0;
+    if (!failingTests) {
+      return failingTestsCount;
+    } else {
+      // Extract number of failing tests from test output ("x tests completed, y failed, z skipped")
+      try {
+        String output = testResult.output;
+        String[] lines = output.split("\n");
+        for (int i = lines.length - 1; i >= 0; i--) {
+          String line = lines[i];
+          if ((line.contains("tests completed") || line.contains("test completed"))
+              && line.contains("failed")) {
+            String[] parts = line.split(",");
+            for (String part : parts) {
+              part = part.trim();
+              if (part.endsWith("failed")) {
+                String[] subParts = part.split(" ");
+                failingTestsCount = Integer.parseInt(subParts[0]);
+                break;
+              }
+            }
+            break;
+          }
+        }
+      } catch (Exception e) {
+        System.err.println("Error while extracting failing tests count: " + e.getMessage());
+        failingTestsCount = -1;
+      }
+
+      return failingTestsCount;
+    }
   }
 
   private void commitChanges(
