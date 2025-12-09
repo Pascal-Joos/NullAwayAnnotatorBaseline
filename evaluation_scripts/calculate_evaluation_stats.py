@@ -45,7 +45,7 @@ class BenchmarkStats:
         self.total_tokens += int(patch.get("tokens", 0))
         self.total_monetary_cost += float(patch.get("monetary_cost", 0.0))
 
-    def finalize(self) -> Dict:
+    def finalize(self, config_dir: str) -> Dict:
         data = asdict(self)
 
         if self.total_target_errors > 0:
@@ -65,7 +65,7 @@ class BenchmarkStats:
 class BenchmarkStatsNonCombined(BenchmarkStats):
     failing_test_patches: int = 0
 
-    def aggregate_from_patch(self, patch):
+    def aggregate_from_patch(self, patch) -> None:
         super().aggregate_from_patch(patch)
         if patch.get("has_failing_tests"):
             self.failing_test_patches += 1
@@ -77,11 +77,30 @@ class BenchmarkStatsCombined(BenchmarkStats):
     total_test_failures: int = -1
     remaining_errors: int = 1_000_000
 
-    def aggregate_from_patch(self, patch):
+    def aggregate_from_patch(self, patch) -> None:
         super().aggregate_from_patch(patch)
         self.remaining_errors = min(self.remaining_errors, patch.get("remaining_errors", self.remaining_errors))
-    
 
+    def finalize(self, config_dir: str) -> Dict:
+        finalized_stats = super().finalize(config_dir)
+        remaining_errors_after_reverting_late_breaking_fixes = parse_remaining_errors_after_reverting_late_breaking_fixes_tsv(os.path.join(config_dir, "remaining_errors_after_reverting_late_breaking_fixes.tsv"))
+
+        if remaining_errors_after_reverting_late_breaking_fixes != -1:
+            finalized_stats["remaining_errors"] = remaining_errors_after_reverting_late_breaking_fixes
+        return finalized_stats
+    
+def parse_remaining_errors_after_reverting_late_breaking_fixes_tsv(path: str) -> int:
+    print(f"Parsing remaining errors from: {path}")
+    if not os.path.exists(path):
+        return -1
+
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            try:
+                return int(row.get("REMAINING_ERRORS", -1))
+            except (TypeError, ValueError):
+                return -1
 
 def parse_metrics_tsv(path: str) -> List[Dict]:
     patches: List[Dict] = []
@@ -220,11 +239,11 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
     return stats
 
 
-def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats], combined: bool) -> None:
+def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats], combined: bool, log_root: str, config_subdir: str) -> None:
     if not stats_per_benchmark:
         return
 
-    rows = [s.finalize() for s in stats_per_benchmark]
+    rows = [s.finalize(os.path.join(log_root, s.project, config_subdir)) for s in stats_per_benchmark]
 
     # Aggregate totals for the 'total' row
     if combined:
@@ -259,7 +278,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
         total_stats.total_tokens += s.total_tokens
         total_stats.total_monetary_cost += s.total_monetary_cost
 
-    total_row = total_stats.finalize()
+    total_row = total_stats.finalize(os.path.join(log_root, "total", config_subdir))
 
     if not combined:
         fieldnames = [
@@ -361,7 +380,7 @@ def main() -> None:
         stats = collect_stats_for_benchmark(args.log_root, benchmark, args.config_subdir, args.code_fix_mode, args.combined)
         stats_list.append(stats)
 
-    write_stats_tsv(args.output, stats_list, args.combined)
+    write_stats_tsv(args.output, stats_list, args.combined, args.log_root, args.config_subdir)
 
 
 if __name__ == "__main__":
