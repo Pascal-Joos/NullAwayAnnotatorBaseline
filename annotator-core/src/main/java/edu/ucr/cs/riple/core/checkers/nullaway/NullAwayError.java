@@ -309,7 +309,7 @@ public class NullAwayError extends Error implements Comparable<NullAwayError> {
    */
   public JsonArray getOrigins() {
     if (!infos.has("origins")) {
-      new JsonArray();
+      return new JsonArray();
     }
     return infos.getAsJsonArray("origins");
   }
