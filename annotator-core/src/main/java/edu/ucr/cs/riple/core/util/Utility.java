@@ -108,21 +108,42 @@ public class Utility {
       pb.redirectErrorStream(true); // Merge stderr into stdout
       Process process = pb.start();
 
-      StringBuilder output = new StringBuilder();
-      try (InputStream inputStream = process.getInputStream();
-          java.io.BufferedReader reader =
-              new java.io.BufferedReader(
-                  new java.io.InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-          output.append(line).append("\n");
+      final StringBuilder output = new StringBuilder();
+      Thread outputThread = new Thread(() -> {
+        try (InputStream inputStream = process.getInputStream();
+             java.io.BufferedReader reader =
+                 new java.io.BufferedReader(
+                     new java.io.InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+          String line;
+          while ((line = reader.readLine()) != null) {
+            output.append(line).append("\n");
+          }
+        } catch (IOException e) {
+          output.append("[Error reading process output: ").append(e.getMessage()).append("]\n");
+        }
+      });
+      outputThread.start();
+
+      // Wait for process and output reading to finish, with a timeout of 20 minutes (1200 seconds)
+      boolean finished = process.waitFor(1200, java.util.concurrent.TimeUnit.SECONDS);
+      outputThread.join(1200 * 1000); // 1200 seconds in milliseconds
+      int exitCode;
+      if (finished && !outputThread.isAlive()) {
+        exitCode = process.exitValue();
+      } else {
+        process.destroyForcibly();
+        exitCode = -1; // Indicate timeout
+        output.append("[Process terminated due to timeout]\n");
+        if (outputThread.isAlive()) {
+          outputThread.interrupt();
         }
       }
-
-      int exitCode = process.waitFor();
       return new CommandResult(exitCode, output.toString());
-    } catch (Exception e) {
-      throw new RuntimeException("Exception happened in executing command: " + command, e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Thread interrupted while executing command: " + command, e);
+    } catch (IOException e) {
+      throw new IllegalStateException("IOException happened in executing command: " + command, e);
     }
   }
 
