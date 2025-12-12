@@ -109,19 +109,24 @@ public class Utility {
       Process process = pb.start();
 
       final StringBuilder output = new StringBuilder();
-      Thread outputThread = new Thread(() -> {
-        try (InputStream inputStream = process.getInputStream();
-             java.io.BufferedReader reader =
-                 new java.io.BufferedReader(
-                     new java.io.InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-          String line;
-          while ((line = reader.readLine()) != null) {
-            output.append(line).append("\n");
-          }
-        } catch (IOException e) {
-          output.append("[Error reading process output: ").append(e.getMessage()).append("]\n");
-        }
-      });
+      Thread outputThread =
+          new Thread(
+              () -> {
+                try (InputStream inputStream = process.getInputStream();
+                    java.io.BufferedReader reader =
+                        new java.io.BufferedReader(
+                            new java.io.InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+                  String line;
+                  while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                  }
+                } catch (IOException e) {
+                  output
+                      .append("[Error reading process output: ")
+                      .append(e.getMessage())
+                      .append("]\n");
+                }
+              });
       outputThread.start();
 
       // Wait for process and output reading to finish, with a timeout of 20 minutes (1200 seconds)
