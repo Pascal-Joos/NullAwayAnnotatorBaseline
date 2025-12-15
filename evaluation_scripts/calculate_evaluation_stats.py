@@ -102,12 +102,20 @@ def parse_remaining_errors_after_reverting_late_breaking_fixes_tsv(path: str) ->
             except (TypeError, ValueError):
                 return -1
 
-def parse_metrics_tsv(path: str) -> List[Dict]:
+def parse_metrics_tsv(metrics_updated_path: str, metrics_path: str) -> List[Dict]:
     patches: List[Dict] = []
-    if not os.path.exists(path):
+
+    if os.path.exists(metrics_updated_path):
+        with open(metrics_updated_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            for row in reader:
+                patches.append(row)
         return patches
 
-    with open(path, newline="", encoding="utf-8") as f:
+    if not os.path.exists(metrics_path):
+        return patches
+
+    with open(metrics_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             patches.append(row)
@@ -197,10 +205,11 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
     else:
         stats = BenchmarkStatsNonCombined(project=benchmark)
 
+    metrics_updated_path = os.path.join(config_dir, "metrics_updated.tsv")
     metrics_path = os.path.join(config_dir, "metrics.tsv")
     timers_path = os.path.join(config_dir, "timers.tsv")
 
-    metrics_rows = parse_metrics_tsv(metrics_path)
+    metrics_rows = parse_metrics_tsv(metrics_updated_path, metrics_path)
     full_scaffold_execution_time_in_millis = parse_timers_tsv(timers_path)
     stats.full_scaffold_execution_time_in_sec = full_scaffold_execution_time_in_millis / 1000.0
 
