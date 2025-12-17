@@ -182,8 +182,8 @@ public class Main {
             "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk ./gradlew %s -Derrorprone.disable=true",
             PROJECT_PATH, benchmark.testCommand);
 
-    // Special handling for benchmarks that require a screen (e.g., litiengine)
-    if (benchmarkName.equals("litiengine")) {
+    // Special handling for benchmarks that require a screen (e.g., litiengine, jadx)
+    if (benchmarkName.equals("litiengine") || benchmarkName.equals("jadx")) {
       fullTestCommand =
           String.format(
               "export JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64 && cd %s && ANDROID_HOME=/usr/lib/android-sdk xvfb-run --auto-servernum --server-args='-screen 0 1024x768x24' ./gradlew %s -Derrorprone.disable=true",
