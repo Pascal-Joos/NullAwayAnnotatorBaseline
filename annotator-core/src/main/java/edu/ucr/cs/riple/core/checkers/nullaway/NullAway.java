@@ -801,7 +801,8 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
 
       testResult =
           Utility.executeCommandAndCaptureOutput(
-              config, String.format("cd %s && %s", config.benchmarkPath, config.testCommand));
+              config,
+              String.format("cd %s && %s --continue", config.benchmarkPath, config.testCommand));
       if (testResult.exitCode != 0) {
         failingTests = true;
       }
