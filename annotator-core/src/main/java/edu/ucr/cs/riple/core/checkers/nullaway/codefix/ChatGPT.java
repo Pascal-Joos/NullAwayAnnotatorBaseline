@@ -569,15 +569,15 @@ public class ChatGPT {
    *     model fails.
    */
   public Set<RegionRewrite> fixDereferenceByAddingCastToNonnull(
-      NullAwayError error, String reason, Context context) {
+      NullAwayError error, Context context) {
     String enclosingMethod = parser.getRegionSourceCode(error.getRegion()).content;
     String prompt =
         String.format(
             rewriteCastToNonnullPrompt,
-            reason,
             error.getNullableExpression(),
             enclosingMethod,
             error.position.diagnosticLine,
+            error.getNullableExpression(),
             error.getNullableExpression(),
             error.getNullableExpression());
     Response response = ask(prompt);
@@ -613,6 +613,7 @@ public class ChatGPT {
             error.getNullableExpression(),
             enclosingMethod,
             error.position.diagnosticLine,
+            error.getNullableExpression(),
             error.getNullableExpression(),
             error.getNullableExpression());
     Response response = ask(prompt);

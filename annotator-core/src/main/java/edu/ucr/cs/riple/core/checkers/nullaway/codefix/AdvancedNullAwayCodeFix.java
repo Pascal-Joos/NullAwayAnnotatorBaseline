@@ -649,7 +649,7 @@ public class AdvancedNullAwayCodeFix extends NullAwayCodeFix {
    */
   private Set<RegionRewrite> constructCastToNonnullChange(NullAwayError error, String reason) {
     logger.trace("Constructing cast to nonnull change for reason: {}", reason);
-    Set<RegionRewrite> rws = gpt.fixDereferenceByAddingCastToNonnull(error, reason, context);
+    Set<RegionRewrite> rws = gpt.fixDereferenceByAddingCastToNonnull(error, context);
     apply(rws);
     return NO_ACTION;
   }
