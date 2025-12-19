@@ -501,9 +501,8 @@ public class ChatGPT {
             expression,
             method,
             regionData,
-            constructPromptForRegions(errorRegions),
-            expression,
-            expression);
+            constructPromptForRegions(errorRegions)
+            );
     logger.trace("Asking if the error can be fixed by using all regions");
     Response response = ask(prompt);
     logger.trace("response: " + response);
@@ -734,7 +733,7 @@ public class ChatGPT {
       prompt =
           String.format(
               checkIfExpressionCanBeNullAtErrorPointPrompt,
-              error.position.diagnosticLine.trim(),
+              error.getNullableExpression(),
               error.position.diagnosticLine.trim(),
               regionMember);
     }
@@ -781,8 +780,8 @@ public class ChatGPT {
         String.format(
             checkIfParamIsNullablePrompt,
             param,
-            callContext,
-            parser.getRegionSourceCode(new Region(encClass, method)));
+            parser.getRegionSourceCode(new Region(encClass, method)).content,
+            callContext);
     return ask(prompt);
   }
 
