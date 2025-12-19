@@ -577,6 +577,7 @@ public class ChatGPT {
             error.position.diagnosticLine,
             error.getNullableExpression(),
             error.getNullableExpression(),
+            error.getNullableExpression(),
             error.getNullableExpression());
     Response response = ask(prompt);
     if (!response.isSuccessFull()) {
@@ -611,6 +612,7 @@ public class ChatGPT {
             error.getNullableExpression(),
             enclosingMethod,
             error.position.diagnosticLine,
+            error.getNullableExpression(),
             error.getNullableExpression(),
             error.getNullableExpression(),
             error.getNullableExpression());
