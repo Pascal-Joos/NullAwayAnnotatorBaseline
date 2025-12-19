@@ -734,7 +734,7 @@ public class ChatGPT {
       prompt =
           String.format(
               checkIfExpressionCanBeNullAtErrorPointPrompt,
-              error.getNullableExpression(),
+              error.position.diagnosticLine.trim(),
               error.position.diagnosticLine.trim(),
               regionMember);
     }
