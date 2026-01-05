@@ -160,5 +160,3 @@ public class OnFieldInjectionTest extends BaseInjectorTest {
         .start();
   }
 }
-
-
