@@ -133,10 +133,9 @@ public class Main {
   // Ubuntu
   public static final boolean DEBUG_MODE = false;
   public static final String DEBUG_LINE =
-      "String name = input.get(\"subWorkflowName\").toString();";
+      "this.ownerType = ownerType == null ? null : canonicalize(ownerType);";
 
   public static void main(String[] args) {
-    //    args = new String[] {"conductor", "advanced"};
     System.out.println("ANNOTATOR VERSION: " + VERSION + ", BUILD: " + BUILD_VERSION);
     System.out.println("Received arguments: " + String.join(", ", args));
     String benchmarkName = args[0];
