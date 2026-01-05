@@ -57,19 +57,42 @@ import org.slf4j.LoggerFactory;
 public class ChatGPT {
 
   // Model pricing info (per 1K tokens)
-  public static final class ModelPricing {
+  private static final class ModelPricing {
     public final double uncachedPromptCostPer1K;
     public final double cachedPromptCostPer1K;
     public final double completionCostPer1K;
 
-    ModelPricing(double uncachedPrompt, double cachedPrompt, double completion) {
-      this.uncachedPromptCostPer1K = uncachedPrompt;
-      this.cachedPromptCostPer1K = cachedPrompt;
-      this.completionCostPer1K = completion;
+    ModelPricing(
+        double uncachedPromptCostPer1K, double cachedPromptCostPer1K, double completionCostPer1K) {
+      this.uncachedPromptCostPer1K = uncachedPromptCostPer1K;
+      this.cachedPromptCostPer1K = cachedPromptCostPer1K;
+      this.completionCostPer1K = completionCostPer1K;
     }
   }
 
-  public static final java.util.Map<String, ModelPricing> MODEL_PRICING =
+  /**
+   * Calculates the cost in dollars for the currently used GPT model. Pricing is retrieved from
+   * MODEL_PRICING map.
+   */
+  public static double calculateGPTCost(ChatGPTTokenUsage tokenUsage, String modelName) {
+    ModelPricing pricing = ChatGPT.MODEL_PRICING.get(modelName);
+    if (pricing == null) {
+      System.err.println(
+          "Pricing information not found for model: "
+              + modelName
+              + ". Defaulting to openai/gpt-4o.");
+      pricing = ChatGPT.MODEL_PRICING.get("openai/gpt-4o");
+    }
+    double uncachedPromptCost =
+        tokenUsage.getUncachedPromptTokens() * pricing.uncachedPromptCostPer1K / 1_000.0;
+    double cachedPromptCost =
+        tokenUsage.getCachedPromptTokens() * pricing.cachedPromptCostPer1K / 1_000.0;
+    double completionCost =
+        tokenUsage.getCompletionTokens() * pricing.completionCostPer1K / 1_000.0;
+    return uncachedPromptCost + cachedPromptCost + completionCost;
+  }
+
+  private static final java.util.Map<String, ModelPricing> MODEL_PRICING =
       java.util.Map.of(
           "openai/gpt-4o", new ModelPricing(0.0025, 0.00125, 0.010),
           "openai/gpt-4.1-mini", new ModelPricing(0.0004, 0.0001, 0.0016),
@@ -143,6 +166,12 @@ public class ChatGPT {
   /** Limit of retries to get a valid response from ChatGPT. */
   private static final int RETRY_LIMIT = 5;
 
+  /** Limit of distinct requests to send to ChatGPT. */
+  private static final int DISTINCT_REQUESTS_LIMIT = 50;
+
+  /** Cost limit in dollars for the requests to ChatGPT. */
+  private static final double COST_LIMIT = 0.5;
+
   /**
    * The {@link ASTParser} instance used to parse the source code of the file containing the error.
    */
@@ -198,9 +227,13 @@ public class ChatGPT {
       count.incrementAndGet();
       askedPrompts.add(ResponseCache.normalize(prompt));
     }
-    if (count.get() > 50) {
-      throw new RuntimeException("Exceeded the limit of 50 requests to OpenAI");
+    if (count.get() > DISTINCT_REQUESTS_LIMIT) {
+      throw new RuntimeException("Exceeded the limit of " + DISTINCT_REQUESTS_LIMIT + " requests to OpenAI");
     }
+    if (calculateGPTCost(tokenUsage, context.config.modelName) > COST_LIMIT) {
+      throw new RuntimeException("Exceeded the cost limit of $" + COST_LIMIT + " for OpenAI requests");
+    }
+
     ResponseCache.CachedData cachedResponse = responseCache.getCachedResponse(prompt);
     if (cachedResponse != null) {
       System.out.println("Retrieving response from cache");

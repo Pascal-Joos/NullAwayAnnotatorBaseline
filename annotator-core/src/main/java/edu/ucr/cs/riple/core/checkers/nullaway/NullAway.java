@@ -37,7 +37,6 @@ import edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.AgentBaselineNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.BasicNullAwayCodeFix;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT;
-import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ModelPricing;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPTTokenUsage;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.NullAwayCodeFix;
 import edu.ucr.cs.riple.core.module.ModuleConfiguration;
@@ -711,26 +710,6 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     }
   }
 
-  /**
-   * Calculates the cost in dollars for the currently used GPT model. Pricing is retrieved from
-   * MODEL_PRICING map.
-   */
-  private double calculateGPTCost(
-      long uncachedPromptTokens, long cachedPromptTokens, long completionTokens) {
-    ModelPricing pricing = ChatGPT.MODEL_PRICING.get(config.modelName);
-    if (pricing == null) {
-      System.err.println(
-          "Pricing information not found for model: "
-              + config.modelName
-              + ". Defaulting to openai/gpt-4o.");
-      pricing = ChatGPT.MODEL_PRICING.get("openai/gpt-4o");
-    }
-    double uncachedPromptCost = uncachedPromptTokens * pricing.uncachedPromptCostPer1K / 1_000.0;
-    double cachedPromptCost = cachedPromptTokens * pricing.cachedPromptCostPer1K / 1_000.0;
-    double completionCost = completionTokens * pricing.completionCostPer1K / 1_000.0;
-    return uncachedPromptCost + cachedPromptCost + completionCost;
-  }
-
   private void logChatGPTUsage(
       AtomicInteger counter, ChatGPTTokenUsage tokenUsage, long promptCounts) {
     System.out.println("Logging ChatGPT token usage...");
@@ -741,11 +720,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     if (Files.notExists(tokenUsagePath)) {
       TSVFiles.initialize(tokenUsagePath, metricsHeader);
     }
-    double cost =
-        calculateGPTCost(
-            tokenUsage.getUncachedPromptTokens(),
-            tokenUsage.getCachedPromptTokens(),
-            tokenUsage.getCompletionTokens());
+    double cost = ChatGPT.calculateGPTCost(tokenUsage, config.modelName);
     String row =
         String.format(
             "%d\t%d\t%d\t%d\t%d\t%d\t%f\t%s",
