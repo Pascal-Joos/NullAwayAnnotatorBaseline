@@ -228,10 +228,12 @@ public class ChatGPT {
       askedPrompts.add(ResponseCache.normalize(prompt));
     }
     if (count.get() > DISTINCT_REQUESTS_LIMIT) {
-      throw new RuntimeException("Exceeded the limit of " + DISTINCT_REQUESTS_LIMIT + " requests to OpenAI");
+      throw new RuntimeException(
+          "Exceeded the limit of " + DISTINCT_REQUESTS_LIMIT + " requests to OpenAI");
     }
     if (calculateGPTCost(tokenUsage, context.config.modelName) > COST_LIMIT) {
-      throw new RuntimeException("Exceeded the cost limit of $" + COST_LIMIT + " for OpenAI requests");
+      throw new RuntimeException(
+          "Exceeded the cost limit of $" + COST_LIMIT + " for OpenAI requests");
     }
 
     ResponseCache.CachedData cachedResponse = responseCache.getCachedResponse(prompt);
