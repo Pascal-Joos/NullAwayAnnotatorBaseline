@@ -61,10 +61,10 @@ def filter_errors(benchmark, version):
         commit_row = commits_dict[commit_id]
         metric_row = metrics_dict[commit_id]
         
-        if not metric_row["PATCH_GENERATED"] or commit_row["TYPE"] in UNSUPPORTED:
+        if metric_row["PATCH_GENERATED"].lower() != "true" or commit_row["TYPE"] in UNSUPPORTED:
             continue
         # Check that target error is resolved and no failing tests. Maybe these are to strict conditions.
-        if metric_row["TARGET_ERROR_RESOLVED"] and not metric_row["FAILING_TESTS"]:
+        if metric_row["TARGET_ERROR_RESOLVED"].lower() == "true" and metric_row["FAILING_TESTS"].lower() == "false":
             info = {
                 "id": commit_row["ID"],
                 "hash": commit_row["HASH"],
