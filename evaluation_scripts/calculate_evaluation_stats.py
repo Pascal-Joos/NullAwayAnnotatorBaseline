@@ -64,13 +64,15 @@ class BenchmarkStats:
 @dataclass
 class BenchmarkStatsNonCombined(BenchmarkStats):
     failing_test_patches: int = 0
+    resolving_patches_no_new_errors_no_failing_tests: int = 0
 
     def aggregate_from_patch(self, patch) -> None:
         super().aggregate_from_patch(patch)
         if patch.get("has_failing_tests"):
             self.failing_test_patches += 1
 
-        
+        if patch.get("resolves_error_and_no_new_errors") and not patch.get("has_failing_tests"):
+            self.resolving_patches_no_new_errors_no_failing_tests += 1
 
 @dataclass
 class BenchmarkStatsCombined(BenchmarkStats):
@@ -271,6 +273,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
             total_stats.total_test_failures += s.total_test_failures
         else:
             total_stats.failing_test_patches += s.failing_test_patches
+            total_stats.resolving_patches_no_new_errors_no_failing_tests += s.resolving_patches_no_new_errors_no_failing_tests
 
         total_stats.total_execution_time_sec += s.total_execution_time_sec
         total_stats.full_scaffold_execution_time_in_sec += s.full_scaffold_execution_time_in_sec
@@ -290,6 +293,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
             "resolving_patches_and_no_new_errors",
             "trigger_new_error_patches",
             "failing_test_patches",
+            "resolving_patches_no_new_errors_no_failing_tests",
             "total_execution_time_sec",
             "avg_execution_time_sec",
             "full_scaffold_execution_time_in_sec",
