@@ -65,6 +65,8 @@ class BenchmarkStats:
 class BenchmarkStatsNonCombined(BenchmarkStats):
     failing_test_patches: int = 0
     resolving_patches_no_new_errors_no_failing_tests: int = 0
+    percentage_resolving_patches_and_no_new_errors: float = 0.0
+    percentage_failing_test_patches: float = 0.0
 
     def aggregate_from_patch(self, patch) -> None:
         super().aggregate_from_patch(patch)
@@ -74,10 +76,22 @@ class BenchmarkStatsNonCombined(BenchmarkStats):
         if patch.get("resolves_error_and_no_new_errors") and not patch.get("has_failing_tests"):
             self.resolving_patches_no_new_errors_no_failing_tests += 1
 
+    def finalize(self, config_dir: str) -> Dict:
+        finalized_stats = super().finalize(config_dir)
+        if self.total_target_errors > 0:
+            finalized_stats["percentage_resolving_patches_and_no_new_errors"] = (self.resolving_patches_and_no_new_errors / self.total_target_errors) * 100.0
+            finalized_stats["percentage_failing_test_patches"] = (self.failing_test_patches / self.total_target_errors) * 100.0
+        else:
+            finalized_stats["percentage_resolving_patches_and_no_new_errors"] = 0.0
+            finalized_stats["percentage_failing_test_patches"] = 0.0
+            
+        return finalized_stats
+
 @dataclass
 class BenchmarkStatsCombined(BenchmarkStats):
     total_test_failures: int = -1
     remaining_errors: int = 1_000_000
+    percentage_error_reduction: float = 0.0
 
     def aggregate_from_patch(self, patch) -> None:
         super().aggregate_from_patch(patch)
@@ -89,10 +103,16 @@ class BenchmarkStatsCombined(BenchmarkStats):
 
         if remaining_errors_after_reverting_late_breaking_fixes != -1:
             finalized_stats["remaining_errors"] = remaining_errors_after_reverting_late_breaking_fixes
+
+        if self.total_target_errors > 0:
+            finalized_stats["percentage_error_reduction"] = ((self.total_target_errors - finalized_stats["remaining_errors"]) / self.total_target_errors) * 100.0
+        else:
+            finalized_stats["percentage_error_reduction"] = 0.0
+
         return finalized_stats
     
 def parse_remaining_errors_after_reverting_late_breaking_fixes_tsv(path: str) -> int:
-    print(f"Parsing remaining errors from: {path}")
+    
     if not os.path.exists(path):
         return -1
 
@@ -291,9 +311,11 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
             "error_introducing_patches",
             "resolving_patches",
             "resolving_patches_and_no_new_errors",
+            "percentage_resolving_patches_and_no_new_errors",
             "trigger_new_error_patches",
             "failing_test_patches",
             "resolving_patches_no_new_errors_no_failing_tests",
+            "percentage_failing_test_patches",
             "total_execution_time_sec",
             "avg_execution_time_sec",
             "full_scaffold_execution_time_in_sec",
@@ -314,6 +336,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
             "resolving_patches_and_no_new_errors",
             "trigger_new_error_patches",
             "remaining_errors",
+            "percentage_error_reduction",
             "total_test_failures",
             "total_execution_time_sec",
             "avg_execution_time_sec",
