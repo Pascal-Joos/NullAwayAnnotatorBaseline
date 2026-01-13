@@ -19,6 +19,9 @@ class BenchmarkStats:
     full_scaffold_execution_time_in_sec: float = 0.0
     total_agent_cycles: int = 0
     total_tokens: int = 0
+    uncached_input_tokens: int = 0
+    cached_input_tokens: int = 0
+    completion_tokens: int = 0
     total_monetary_cost: float = 0.0
 
     def aggregate_from_patch(self, patch: Dict) -> None:
@@ -42,7 +45,10 @@ class BenchmarkStats:
 
         self.total_execution_time_sec += float(patch.get("execution_time_sec", 0.0))
         self.total_agent_cycles += int(patch.get("agent_cycles", 0))
-        self.total_tokens += int(patch.get("tokens", 0))
+        self.total_tokens += int(patch.get("total_tokens", 0))
+        self.uncached_input_tokens += int(patch.get("uncached_input_tokens", 0))
+        self.cached_input_tokens += int(patch.get("cached_input_tokens", 0))
+        self.completion_tokens += int(patch.get("completion_tokens", 0))
         self.total_monetary_cost += float(patch.get("monetary_cost", 0.0))
 
     def finalize(self, config_dir: str) -> Dict:
@@ -52,11 +58,15 @@ class BenchmarkStats:
             data["avg_execution_time_sec"] = self.total_execution_time_sec / self.total_target_errors
             data["avg_agent_cycles"] = self.total_agent_cycles / self.total_target_errors
             data["avg_tokens"] = self.total_tokens / self.total_target_errors
+            data["avg_uncached_input_tokens"] = self.uncached_input_tokens / self.total_target_errors
+            data["avg_cached_input_tokens"] = self.cached_input_tokens / self.total_target_errors
+            data["avg_completion_tokens"] = self.completion_tokens / self.total_target_errors
             data["avg_monetary_cost"] = self.total_monetary_cost / self.total_target_errors
         else:
             data["avg_execution_time_sec"] = 0.0
             data["avg_agent_cycles"] = 0.0
             data["avg_tokens"] = 0.0
+            data["avg_completion_tokens"] = 0.0
             data["avg_monetary_cost"] = 0.0
 
         return data
@@ -204,12 +214,48 @@ def parse_agent_logs_agent_baseline(log_dir: str) -> Dict[str, Dict]:
             continue
 
         info = data.get("info", {}).get("model_stats", {})
+        messages = data.get("messages", [])
         agent_info.setdefault(patch_id_str, {})
         agent_info[patch_id_str]["agent_cycles"] = info.get("api_calls", 0)
-        agent_info[patch_id_str]["tokens"] = info.get("total_tokens", 0)
+        agent_info[patch_id_str]["total_tokens"] = info.get("total_tokens", 0)
+        agent_info[patch_id_str]["uncached_input_tokens"] = retrieve_uncached_input_tokens(messages)
+        agent_info[patch_id_str]["cached_input_tokens"] = retrieve_cached_input_tokens(messages)
+        agent_info[patch_id_str]["completion_tokens"] = info.get("completion_tokens", 0)
         agent_info[patch_id_str]["monetary_cost"] = info.get("instance_cost", 0.0)
 
     return agent_info
+
+def retrieve_uncached_input_tokens(messages: Dict) -> int:
+    # Aggregate all "prompt_tokens" fields in messages dict.
+    total_uncached = 0
+    for message in messages:
+        extra_info = message.get("extra", {})
+        if not extra_info:
+            continue
+        response = extra_info.get("response", {})
+        usage = response.get("usage", {})
+
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        cached_tokens = usage.get("prompt_tokens_details", {}).get("cached_tokens", 0)
+        uncached_tokens = prompt_tokens - cached_tokens
+        total_uncached += uncached_tokens
+
+    return total_uncached
+
+def retrieve_cached_input_tokens(messages: Dict) -> int:
+    # Aggregate all "cached_tokens" fields in messages dict.
+    total_cached = 0
+    for message in messages:
+        extra_info = message.get("extra", {})
+        if not extra_info:
+            continue
+        response = extra_info.get("response", {})
+        usage = response.get("usage", {})
+
+        cached_tokens = usage.get("prompt_tokens_details", {}).get("cached_tokens", 0)
+        total_cached += cached_tokens
+
+    return total_cached
 
 # Only applies to non-agent_baseline modes
 def parse_token_usage_log(path: str) -> Dict[str, Dict]:
@@ -223,7 +269,10 @@ def parse_token_usage_log(path: str) -> Dict[str, Dict]:
         for row in reader:
             agent_info.setdefault(row["ID"], {})
             agent_info[row["ID"]]["agent_cycles"] = int(row.get("PROMPTS_COUNT", 0))
-            agent_info[row["ID"]]["tokens"] = int(row.get("TOTAL_TOKENS", 0))
+            agent_info[row["ID"]]["total_tokens"] = int(row.get("TOTAL_TOKENS", 0))
+            agent_info[row["ID"]]["uncached_input_tokens"] = int(row.get("UNCACHED_PROMPTS_TOKENS", 0))
+            agent_info[row["ID"]]["cached_input_tokens"] = int(row.get("CACHED_PROMPTS_TOKENS", 0))
+            agent_info[row["ID"]]["completion_tokens"] = int(row.get("RESPONSES_TOKENS", 0))
             agent_info[row["ID"]]["monetary_cost"] = float(row.get("COST_IN_DOLLARS", 0.0))
 
     return agent_info
@@ -273,7 +322,10 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
         patch_record["execution_time_sec"] = float(row.get("EXECUTION_TIME_IN_MILLIS")) / 1000.0 if row.get("EXECUTION_TIME_IN_MILLIS") is not None else 0.0
         
         patch_record["agent_cycles"] = agent_info_for_patch.get("agent_cycles", 0)
-        patch_record["tokens"] = agent_info_for_patch.get("tokens", 0)
+        patch_record["total_tokens"] = agent_info_for_patch.get("total_tokens", 0)
+        patch_record["uncached_input_tokens"] = agent_info_for_patch.get("uncached_input_tokens", 0)
+        patch_record["cached_input_tokens"] = agent_info_for_patch.get("cached_input_tokens", 0)
+        patch_record["completion_tokens"] = agent_info_for_patch.get("completion_tokens", 0)
         patch_record["monetary_cost"] = agent_info_for_patch.get("monetary_cost", 0.0)
 
         stats.aggregate_from_patch(patch_record)
@@ -319,6 +371,9 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
         total_stats.full_scaffold_execution_time_in_sec += s.full_scaffold_execution_time_in_sec
         total_stats.total_agent_cycles += s.total_agent_cycles
         total_stats.total_tokens += s.total_tokens
+        total_stats.uncached_input_tokens += s.uncached_input_tokens
+        total_stats.cached_input_tokens += s.cached_input_tokens
+        total_stats.completion_tokens += s.completion_tokens
         total_stats.total_monetary_cost += s.total_monetary_cost
 
     total_row = total_stats.finalize(os.path.join(log_root, "total", config_subdir))
@@ -342,7 +397,13 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
             "total_agent_cycles",
             "avg_agent_cycles",
             "total_tokens",
+            "uncached_input_tokens",
+            "cached_input_tokens",
+            "completion_tokens",
             "avg_tokens",
+            "avg_cached_input_tokens",
+            "avg_uncached_input_tokens",
+            "avg_completion_tokens",
             "total_monetary_cost",
             "avg_monetary_cost",
         ]
@@ -365,7 +426,13 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
             "total_agent_cycles",
             "avg_agent_cycles",
             "total_tokens",
+            "uncached_input_tokens",
+            "cached_input_tokens",
+            "completion_tokens",
             "avg_tokens",
+            "avg_cached_input_tokens",
+            "avg_uncached_input_tokens",
+            "avg_completion_tokens",
             "total_monetary_cost",
             "avg_monetary_cost",
         ]
