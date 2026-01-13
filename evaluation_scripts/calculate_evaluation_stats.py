@@ -84,7 +84,7 @@ class BenchmarkStatsNonCombined(BenchmarkStats):
         else:
             finalized_stats["percentage_resolving_patches_and_no_new_errors"] = 0.0
             finalized_stats["percentage_failing_test_patches"] = 0.0
-            
+
         return finalized_stats
 
 @dataclass
@@ -92,6 +92,7 @@ class BenchmarkStatsCombined(BenchmarkStats):
     total_test_failures: int = -1
     remaining_errors: int = 1_000_000
     percentage_error_reduction: float = 0.0
+    percentage_failed_tests_from_total_tests: float = 0.0
 
     def aggregate_from_patch(self, patch) -> None:
         super().aggregate_from_patch(patch)
@@ -108,6 +109,13 @@ class BenchmarkStatsCombined(BenchmarkStats):
             finalized_stats["percentage_error_reduction"] = ((self.total_target_errors - finalized_stats["remaining_errors"]) / self.total_target_errors) * 100.0
         else:
             finalized_stats["percentage_error_reduction"] = 0.0
+
+        path_before_exp_folder = os.path.dirname(config_dir)
+        total_tests = parse_total_tests_tsv(os.path.join(path_before_exp_folder, "total_tests.tsv"))
+        if total_tests > 0:
+            finalized_stats["percentage_failed_tests_from_total_tests"] = (self.total_test_failures / total_tests) * 100.0
+        else:
+            finalized_stats["percentage_failed_tests_from_total_tests"] = 0.0
 
         return finalized_stats
     
@@ -159,6 +167,18 @@ def parse_total_test_failures_tsv(path: str) -> int:
                 return int(row.get("TOTAL_TEST_FAILURES", -1))
             except (TypeError, ValueError):
                 return -1
+            
+def parse_total_tests_tsv(path: str) -> int:
+    if not os.path.exists(path):
+        return 0
+
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            try:
+                return int(row.get("TOTAL_TESTS", 0))
+            except (TypeError, ValueError):
+                return 0
 
 # Only applies to agent_baseline mode    
 def parse_agent_logs_agent_baseline(log_dir: str) -> Dict[str, Dict]:
@@ -338,6 +358,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
             "remaining_errors",
             "percentage_error_reduction",
             "total_test_failures",
+            "percentage_failed_tests_from_total_tests",
             "total_execution_time_sec",
             "avg_execution_time_sec",
             "full_scaffold_execution_time_in_sec",
