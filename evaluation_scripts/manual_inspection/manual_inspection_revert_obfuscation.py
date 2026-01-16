@@ -96,7 +96,7 @@ def merge_tool_columns(unobfuscated_file, obfuscated_file, output_file):
 
 def main():
     # Define file paths
-    unobfuscated_file = "manual_inspection_sample_unobfuscated.tsv"
+    unobfuscated_file = "manual_inspection_sample_unobfuscated_with_errors.tsv"
     obfuscated_file = "manual_inspection_sample_obfuscated.tsv"
     output_file = "manual_inspection_sample_reunobfuscated.tsv"
     

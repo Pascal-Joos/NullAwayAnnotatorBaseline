@@ -38,9 +38,9 @@ def analyze_scores(input_file, output_file):
             tool_c = row['Tool C']
             
             # Get the scores (skip if empty)
-            score_a = row['SCORE(Patch A)'].strip()
-            score_b = row['SCORE(Patch B)'].strip()
-            score_c = row['SCORE(Patch C)'].strip()
+            score_a = row['SCORE (Patch A)'].strip()
+            score_b = row['SCORE (Patch B)'].strip()
+            score_c = row['SCORE (Patch C)'].strip()
             
             # Convert to integers if valid
             scores_dict = {}
@@ -55,6 +55,9 @@ def analyze_scores(input_file, output_file):
             if score_c and score_c.isdigit():
                 scores_dict[tool_c] = int(score_c)
                 tool_scores[tool_c].append(int(score_c))
+
+            if len(scores_dict) != 3:
+                print(f"Warning: Incomplete scores for row ID {row['ID']}. Scores found: {scores_dict}")
             
             # Calculate wins/losses/ties for this row
             if len(scores_dict) >= 2:  # Need at least 2 scores to compare
@@ -64,7 +67,7 @@ def analyze_scores(input_file, output_file):
                 # Overall wins/losses/ties
                 for tool in scores_dict:
                     if tool in winners:
-                        if len(winners) <= 2: # Single or double win
+                        if len(winners) <= 1: # Single win only
                             tool_wins[tool] += 1
                         else:  # All 3 win = tie
                             tool_ties[tool] += 1
@@ -173,7 +176,7 @@ def analyze_scores(input_file, output_file):
         print(f"{tools[0]} vs {tools[1]} ({total} comparisons): {tools[0]} wins {results['wins']}, {tools[1]} wins {results['losses']}, ties {results['ties']}")
 
 def main():
-    input_file = "manual_inspection_sample_scored.tsv"
+    input_file = "manual_inspection_sample_reunobfuscated.tsv"
     output_file = "manual_inspection_statistics.tsv"
     
     if len(sys.argv) > 1:
