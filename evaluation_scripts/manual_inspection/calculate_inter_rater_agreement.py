@@ -9,7 +9,7 @@ import os.path
 
 # Configuration - Input files
 SCORING_FILES = [
-    # '1_michael_initial_scoring_obfuscated(1-50).tsv',
+    '1_michael_initial_scoring_obfuscated(1-50).tsv',
     '2_manu_initial_scoring_obfuscated(26-75).tsv',
     '3_martin_initial_scoring_obfuscated(1-25+51-75).tsv'
 ]
