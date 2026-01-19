@@ -38,9 +38,9 @@ def analyze_scores(input_file, output_file):
             tool_c = row['Tool C']
             
             # Get the scores (skip if empty)
-            score_a = row['SCORE (Patch A)'].strip()
-            score_b = row['SCORE (Patch B)'].strip()
-            score_c = row['SCORE (Patch C)'].strip()
+            score_a = row['SCORE (Patch A) Consolidated'].strip()
+            score_b = row['SCORE (Patch B) Consolidated'].strip()
+            score_c = row['SCORE (Patch C) Consolidated'].strip()
             
             # Convert to integers if valid
             scores_dict = {}
@@ -176,7 +176,7 @@ def analyze_scores(input_file, output_file):
         print(f"{tools[0]} vs {tools[1]} ({total} comparisons): {tools[0]} wins {results['wins']}, {tools[1]} wins {results['losses']}, ties {results['ties']}")
 
 def main():
-    input_file = "manual_inspection_sample_reunobfuscated.tsv"
+    input_file = "scoring_merged_all_consolidated.tsv"
     output_file = "manual_inspection_statistics.tsv"
     
     if len(sys.argv) > 1:

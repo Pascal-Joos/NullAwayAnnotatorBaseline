@@ -80,19 +80,19 @@ def main():
     # Define the file pairs to process
     file_pairs = [
         {
-            'sample': '1_michael_sample_obfuscated(1-50).tsv',
-            'scoring': '1_michael_initial_scoring_obfuscated(1-50).tsv',
-            'output': '1_michael_initial_scoring_with_hyperlinks(1-50).tsv'
+            'sample': 'scoring_differences_Manu_vs_Martin.tsv',
+            'scoring': 'scoring_consolidation_Manu_vs_Martin.tsv',
+            'output': 'scoring_consolidation_Manu_vs_Martin_with_hyperlinks.tsv'
         },
         {
-            'sample': '2_manu_sample_obfuscated(26-75).tsv',
-            'scoring': '2_manu_initial_scoring_obfuscated(26-75).tsv',
-            'output': '2_manu_initial_scoring_with_hyperlinks(26-75).tsv'
+            'sample': 'scoring_differences_Michael_vs_Manu.tsv',
+            'scoring': 'scoring_consolidation_Michael_vs_Manu.tsv',
+            'output': 'scoring_consolidation_Michael_vs_Manu_with_hyperlinks.tsv'
         },
         {
-            'sample': '3_martin_sample_obfuscated(1-25+51-75).tsv',
-            'scoring': '3_martin_initial_scoring_obfuscated(1-25+51-75).tsv',
-            'output': '3_martin_initial_scoring_with_hyperlinks(1-25+51-75).tsv'
+            'sample': 'scoring_differences_Michael_vs_Martin.tsv',
+            'scoring': 'scoring_consolidation_Michael_vs_Martin.tsv',
+            'output': 'scoring_consolidation_Michael_vs_Martin_with_hyperlinks.tsv'
         }
     ]
     
