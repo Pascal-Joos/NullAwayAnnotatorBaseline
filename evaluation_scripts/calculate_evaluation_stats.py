@@ -110,11 +110,7 @@ class BenchmarkStatsCombined(BenchmarkStats):
 
     def finalize(self, config_dir: str) -> Dict:
         finalized_stats = super().finalize(config_dir)
-        remaining_errors_after_reverting_late_breaking_fixes = parse_remaining_errors_after_reverting_late_breaking_fixes_tsv(os.path.join(config_dir, "remaining_errors_after_reverting_late_breaking_fixes.tsv"))
-
-        if remaining_errors_after_reverting_late_breaking_fixes != -1:
-            finalized_stats["remaining_errors"] = remaining_errors_after_reverting_late_breaking_fixes
-
+        
         if self.total_target_errors > 0:
             finalized_stats["percentage_error_reduction"] = ((self.total_target_errors - finalized_stats["remaining_errors"]) / self.total_target_errors) * 100.0
         else:
@@ -318,6 +314,12 @@ def collect_stats_for_benchmark(log_root: str, benchmark: str, config_subdir: st
         
         patch_record["has_failing_tests"] = row.get("FAILING_TESTS", "false").lower() == "true"
         patch_record["remaining_errors"] = int(row.get("REMAINING_ERRORS", 1_000_000))
+
+        remaining_errors_after_reverting_late_breaking_fixes = parse_remaining_errors_after_reverting_late_breaking_fixes_tsv(os.path.join(config_dir, "remaining_errors_after_reverting_late_breaking_fixes.tsv"))
+
+        if remaining_errors_after_reverting_late_breaking_fixes != -1:
+            patch_record["remaining_errors"] = remaining_errors_after_reverting_late_breaking_fixes
+
 
         patch_record["execution_time_sec"] = float(row.get("EXECUTION_TIME_IN_MILLIS")) / 1000.0 if row.get("EXECUTION_TIME_IN_MILLIS") is not None else 0.0
         
