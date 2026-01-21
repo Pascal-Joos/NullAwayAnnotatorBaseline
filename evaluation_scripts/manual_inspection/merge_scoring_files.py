@@ -17,16 +17,16 @@ def main():
     
     # Agreement files (use original scores as consolidated)
     agreement_files = [
-        "scoring_agreements_Manu_vs_Martin_reunobfuscated.tsv",
-        "scoring_agreements_Michael_vs_Manu_reunobfuscated.tsv", 
-        "scoring_agreements_Michael_vs_Martin_reunobfuscated.tsv"
+        "scoring_agreements_Manu_vs_Martin_unobfuscated.tsv",
+        "scoring_agreements_Michael_vs_Manu_unobfuscated.tsv", 
+        "scoring_agreements_Michael_vs_Martin_unobfuscated.tsv"
     ]
     
     # Consolidation files (use consolidated scores)
     consolidation_files = [
-        "scoring_consolidation_Manu_vs_Martin_with_hyperlinks_reunobfuscated.tsv",
-        "scoring_consolidation_Michael_vs_Manu_with_hyperlinks_reunobfuscated.tsv",
-        "scoring_consolidation_Michael_vs_Martin_with_hyperlinks_reunobfuscated.tsv"
+        "scoring_consolidation_Manu_vs_Martin_with_hyperlinks_unobfuscated.tsv",
+        "scoring_consolidation_Michael_vs_Manu_with_hyperlinks_unobfuscated.tsv",
+        "scoring_consolidation_Michael_vs_Martin_with_hyperlinks_unobfuscated.tsv"
     ]
     
     all_data = []
