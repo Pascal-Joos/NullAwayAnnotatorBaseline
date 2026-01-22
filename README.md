@@ -1,4 +1,4 @@
-## Instructions for Agentic Baseline
+## Setting up and Running NullRepair
 
 ### Project setup
 
