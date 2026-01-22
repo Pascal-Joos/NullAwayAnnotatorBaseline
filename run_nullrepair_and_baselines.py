@@ -1,6 +1,4 @@
 import subprocess
-import os
-from pathlib import Path
 
 
 BENCHMARKS = [
@@ -17,7 +15,7 @@ BENCHMARKS = [
               "wala-util", 
               "zuul"
               ]
-ANNOTATOR_JAR = "/opt/nullrepair.jar"
+ANNOTATOR_JAR = "./nullrepair.jar"
 
 def prepare(benchmark):
     return
@@ -44,6 +42,34 @@ def run_annotator(benchmark):
     commands += ["java", "-jar", ANNOTATOR_JAR]
     commands += [benchmark]
     commands += ["agent_baseline"]
+    print(commands)
+    subprocess.call(commands)
+
+
+    prepare(benchmark)
+    commands = []
+    commands += ["java", "-jar", ANNOTATOR_JAR]
+    commands += [benchmark]
+    commands += ["advanced"]
+    commands += ["combined"]
+    print(commands)
+    subprocess.call(commands)
+
+    prepare(benchmark)
+    commands = []
+    commands += ["java", "-jar", ANNOTATOR_JAR]
+    commands += [benchmark]
+    commands += ["basic"]
+    commands += ["combined"]
+    print(commands)
+    subprocess.call(commands)
+
+    prepare(benchmark)
+    commands = []
+    commands += ["java", "-jar", ANNOTATOR_JAR]
+    commands += [benchmark]
+    commands += ["agent_baseline"]
+    commands += ["combined"]
     print(commands)
     subprocess.call(commands)
     
