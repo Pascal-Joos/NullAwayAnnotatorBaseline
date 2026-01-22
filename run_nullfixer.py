@@ -11,7 +11,6 @@ BENCHMARKS = [
               "jadx", 
               "libgdx", 
               "glide", 
-              "EventBus", 
               "conductor", 
               "retrofit", 
               "spring-boot", 
@@ -28,35 +27,27 @@ def run_annotator(benchmark):
     commands = []
     commands += ["java", "-jar", ANNOTATOR_JAR]
     commands += [benchmark]
+    commands += ["advanced"]
+    print(commands)
+    subprocess.call(commands)
+
+    prepare(benchmark)
+    commands = []
+    commands += ["java", "-jar", ANNOTATOR_JAR]
+    commands += [benchmark]
     commands += ["basic"]
     print(commands)
     subprocess.call(commands)
-    
+
     prepare(benchmark)
     commands = []
     commands += ["java", "-jar", ANNOTATOR_JAR]
     commands += [benchmark]
-    commands += ["advanced"]
-    commands += ["--combined"]
+    commands += ["agent_baseline"]
     print(commands)
     subprocess.call(commands)
     
-    prepare(benchmark)
-    commands = []
-    commands += ["java", "-jar", ANNOTATOR_JAR]
-    commands += [benchmark]
-    commands += ["advanced"]
-    print(commands)
-    subprocess.call(commands)
     
-    prepare(benchmark)
-    commands = []
-    commands += ["java", "-jar", ANNOTATOR_JAR]
-    commands += [benchmark]
-    commands += ["advanced"]
-    commands += ["--combined"]
-    print(commands)
-    subprocess.call(commands)
 
 for benchmark in BENCHMARKS:
     # pkill -f '.*GradleDaemon.*'
