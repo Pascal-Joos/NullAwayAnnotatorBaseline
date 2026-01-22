@@ -92,8 +92,8 @@ def consolidate_comments_and_scores(df):
     return new_df
 
 def main():
-    input_file = '/home/vscode/NullAwayAnnotatorBaseline/scoring_merged_all_consolidated_without_hyperlinks.tsv'
-    output_file = '/home/vscode/NullAwayAnnotatorBaseline/scoring_merged_simplified.tsv'
+    input_file = 'scoring_merged_all_consolidated_with_hyperlinks.tsv'
+    output_file = 'scoring_merged_simplified.tsv'
     
     # Check if input file exists
     if not os.path.exists(input_file):
