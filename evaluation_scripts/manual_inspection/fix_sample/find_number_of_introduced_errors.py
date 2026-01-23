@@ -151,7 +151,7 @@ original_data = []
 # Store results: (benchmark, commit_id, version) -> triggered_error_count
 results = {}
 
-with open("manual_inspection_samples_with_errors_and_number_of_introduced_errors.tsv", "r", encoding="utf-8") as samples_file:
+with open("manual_inspection_samples_with_errors_and_introduced_errors.tsv", "r", encoding="utf-8") as samples_file:
     reader = csv.DictReader(samples_file, delimiter='\t')
     for row in reader:
         benchmark = row['Benchmark'].lower()

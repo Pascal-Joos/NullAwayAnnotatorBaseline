@@ -54,23 +54,23 @@ def main():
             patch_c = row[7]
 
             if introduced_errors(tool_a, id, patch_a, benchmark):
-                number_of_errors_a = 1
+                introduced_errors_a = 1
             else:
-                number_of_errors_a = 0
+                introduced_errors_a = 0
             if introduced_errors(tool_b, id, patch_b, benchmark):
-                number_of_errors_b = 1
+                introduced_errors_b = 1
             else:
-                number_of_errors_b = 0
+                introduced_errors_b = 0
             if introduced_errors(tool_c, id,  patch_c, benchmark):
-                number_of_errors_c = 1
+                introduced_errors_c = 1
             else:
-                number_of_errors_c = 0
+                introduced_errors_c = 0
 
-            row.append(number_of_errors_a)
-            row.append(number_of_errors_b)
-            row.append(number_of_errors_c)
+            row.append(introduced_errors_a)
+            row.append(introduced_errors_b)
+            row.append(introduced_errors_c)
         
-    with open("manual_inspection_samples_with_errors_and_number_of_introduced_errors.tsv", "w", encoding="utf-8") as output_file:
+    with open("manual_inspection_samples_with_errors_and_introduced_errors.tsv", "w", encoding="utf-8") as output_file:
         writer = csv.writer(output_file, delimiter='\t')
         writer.writerow(["Benchmark", "ID", "Tool A", "Tool B", "Tool C", "Patch A", "Patch B", "Patch C", "Type", "Message", "Path", "Expression",  "SCORE(Patch A)", "SCORE(Patch B)", "SCORE(Patch C)", "Comment", "Introduced Errors Patch A", "Introduced Errors Patch B", "Introduced Errors Patch C"])
         # write rows with correct column order
