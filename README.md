@@ -34,6 +34,11 @@ Example run:
 ```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka agent_baseline```
 
 
+### Results from our evaluation
+
+All evaluation log files, scores from the manual assessment, as well as all created plots are publicly available here: [https://github.com/Pascal-Joos/nullrepair_log_files](https://github.com/Pascal-Joos/nullrepair_log_files).
+
+
 ## NullAwayAnnotator  ![Build Status](https://github.com/nimakarimipour/NullAwayAnnotator/actions/workflows/continuous-integration.yml/badge.svg)
 
 `NullAwayAnnotator`, or simply `Annotator`, is a tool that automatically infers nullability types in the given source code and injects the corresponding annotations to pass [NullAway](https://github.com/uber/NullAway) checks.
