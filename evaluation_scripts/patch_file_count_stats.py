@@ -54,7 +54,7 @@ def count_changed_files(repo_path: str, commit_hash: str) -> int | None:
             stderr=subprocess.DEVNULL,
             text=True,
         )
-        files = [l for l in out.splitlines() if l.strip()]
+        files = [l for l in out.splitlines() if l.strip().endswith(".java")]
         return len(files) if files else None
     except subprocess.CalledProcessError:
         return None
