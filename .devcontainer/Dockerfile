@@ -14,7 +14,7 @@ USER vscode
 WORKDIR /home/vscode
 
 # Install and build NullAway dependency
-RUN git clone https://github.com/nimakarimipour/NullAway.git /home/vscode/NullAway && cd /home/vscode/NullAway && git checkout d0c7d8390964ee5dc95d6bf93ae76b85913b2342 \
+RUN git clone https://github.com/Pascal-Joos/NullAway.git /home/vscode/NullAway && cd /home/vscode/NullAway && git checkout d0c7d8390964ee5dc95d6bf93ae76b85913b2342 \
     && echo 'sdk.dir=/usr/lib/android-sdk' >local.properties && ./gradlew build -x test && ./gradlew publishToMavenLocal
     
 
