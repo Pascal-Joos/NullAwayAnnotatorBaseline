@@ -13,7 +13,7 @@ import subprocess
 from collections import Counter, defaultdict
 
 # ── Config ─────────────────────────────────────────────────────────────────
-LOG_ROOT        = os.path.expanduser("~/Desktop/logs")
+LOG_ROOT        = os.path.expanduser("~/nullrepair_log_files/logs")
 BENCHMARK_ROOT  = os.path.expanduser("~/nullness-benchmarks")
 
 APPROACHES = {

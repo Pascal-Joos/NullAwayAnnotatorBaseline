@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 /** Starting point. */
 public class Main {
 
-  public static final int VERSION = 2;
+  public static final int VERSION = 3;
 
   public static final int BUILD_VERSION = 6;
 
@@ -343,7 +343,7 @@ public class Main {
     Path root =
         Paths.get(
             System.getProperty("user.home"),
-            "Desktop",
+            "nullrepair_log_files",
             "logs",
             config.benchmarkName,
             config.branchName().split("/")[1]

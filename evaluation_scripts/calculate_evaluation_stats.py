@@ -453,7 +453,7 @@ def main() -> None:
     parser.add_argument(
         "--log-root",
         type=str,
-        default="/home/vscode/Desktop/logs",
+        default="/home/vscode/nullrepair_log_files/logs",
         help="Root directory containing benchmark subfolders (default: %(default)s)",
     )
     parser.add_argument(

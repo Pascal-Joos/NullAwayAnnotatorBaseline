@@ -6,8 +6,7 @@
 # This script runs a specified experiment command and sends a notification upon completion.
 # First argument: Notification email address
 # Second argument: Target project
-# Third argument: Experiment mode
-# Remaining arguments: Additional parameters for the experiment command
+# Remaining arguments: Additional parameters for the experiment command (including --mode)
 
 # Function to send notification
 send_notification() {
