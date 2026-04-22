@@ -45,6 +45,8 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -388,14 +390,14 @@ public class ChatGPT {
   }
 
   /**
-   * This method retrieves the API key from the local machine environment variable. If no API key is
-   * found, it prompts the user to enter one. The API key is then not saved however.
+   * This method retrieves the API key from a local .env file. If no API key is found, it prompts
+   * the user to enter one. The API key is then not saved however.
    *
    * @return the API key.
    */
   private static String retrieveApiKey() {
 
-    String openAiApiKey = retrieveAPIKeyFromSystemEnv();
+    String openAiApiKey = retrieveAPIKeyFromDotEnv();
 
     if (!openAiApiKey.isEmpty()) {
       return openAiApiKey;
@@ -407,18 +409,40 @@ public class ChatGPT {
     }
 
     throw new IllegalStateException(
-        "OpenAI API key not provided. Set OPENAI_KEY env variable or provide key on stdin.");
+        "OpenAI API key not provided. Set OPENAI_API_KEY in .env file or provide key on stdin.");
   }
 
-  private static String retrieveAPIKeyFromSystemEnv() {
-
-    String openAiApiKey = System.getenv("OPENAI_KEY");
-    if (openAiApiKey != null) {
-      openAiApiKey = openAiApiKey.trim();
-      if (!openAiApiKey.isEmpty()) {
-        return openAiApiKey;
-      }
+  private static String retrieveAPIKeyFromDotEnv() {
+    Path dotEnvPath = Path.of(".env");
+    if (!Files.exists(dotEnvPath)) {
+      return "";
     }
+
+    try {
+      for (String line : Files.readAllLines(dotEnvPath, Charset.defaultCharset())) {
+        String trimmed = line.trim();
+        if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+          continue;
+        }
+        if (trimmed.startsWith("export ")) {
+          trimmed = trimmed.substring("export ".length()).trim();
+        }
+        if (!trimmed.startsWith("OPENAI_API_KEY=")) {
+          continue;
+        }
+        String openAiApiKey = trimmed.substring("OPENAI_API_KEY=".length()).trim();
+        if ((openAiApiKey.startsWith("\"") && openAiApiKey.endsWith("\""))
+            || (openAiApiKey.startsWith("'") && openAiApiKey.endsWith("'"))) {
+          openAiApiKey = openAiApiKey.substring(1, openAiApiKey.length() - 1).trim();
+        }
+        if (!openAiApiKey.isEmpty()) {
+          return openAiApiKey;
+        }
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to read API key from .env file", e);
+    }
+
     return "";
   }
 
@@ -426,11 +450,12 @@ public class ChatGPT {
 
     String openAiApiKey;
 
-    // Environment variable not set or empty -> ask the user
+    // API key not found in .env -> ask the user
     // Try to read securely from the console first (no echo), fall back to stdin.
     java.io.Console console = System.console();
     if (console != null) {
-      char[] pw = console.readPassword("OPENAI_KEY not set. Please enter your OpenAI API key: ");
+      char[] pw =
+          console.readPassword("OPENAI_API_KEY not set in .env. Please enter your OpenAI API key: ");
       if (pw != null) {
         openAiApiKey = new String(pw).trim();
         if (!openAiApiKey.isEmpty()) {
@@ -438,7 +463,7 @@ public class ChatGPT {
         }
       }
     } else {
-      System.out.print("OPENAI_KEY not set. Please enter your OpenAI API key: ");
+      System.out.print("OPENAI_API_KEY not set in .env. Please enter your OpenAI API key: ");
       try {
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset()));
