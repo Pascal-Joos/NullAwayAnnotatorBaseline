@@ -1,6 +1,6 @@
 # !/bin/bash
 
-# This script checks out the target projects for the experiment into `../nullness-benchmarks` 
+# This script clones the log files repo and checks out the target projects for the experiment into `../nullness-benchmarks` 
 # (i.e., at the same level as the nullrepair repository).
 
 
@@ -19,6 +19,13 @@ projects=(
 
 # Get current directory to return to it after cloning each project
 current_dir=$(pwd)
+
+# Clone the nullrepair_log_files repository if it doesn't already exist
+if [ ! -d "../nullrepair_log_files" ]; then
+    git clone git@github.com:Pascal-Joos/nullrepair_log_files.git ../nullrepair_log_files
+else
+    echo "Directory ../nullrepair_log_files already exists. Skipping clone."
+fi
 
 # Create nullness-benchmarks directory if it doesn't exist
 mkdir -p ../nullness-benchmarks
