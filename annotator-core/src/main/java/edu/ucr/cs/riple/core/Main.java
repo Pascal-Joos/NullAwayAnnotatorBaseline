@@ -237,8 +237,10 @@ public class Main {
         git.resetHard();
         git.pull();
         git.deleteLocalBranch(config.branchName());
+        // TODO: Don't do remote manipulation for artifact submission, as this needs write access
         git.deleteRemoteBranch(config.branchName());
         git.createAndCheckoutBranch(config.branchName());
+        // TODO: Don't do remote manipulation for artifact submission, as this needs write access
         git.pushBranch(config.branchName());
       } else {
         git.checkoutBranch(config.branchName());
@@ -256,6 +258,7 @@ public class Main {
       System.out.printf("Pushing changes to branch %s...%n", config.branchName());
       git.stageAllChanges();
       git.commitChanges("Done");
+      // TODO: Don't do remote manipulation for artifact submission, as this needs write access
       git.pushChanges();
     } catch (Exception e) {
       throw new RuntimeException(e);

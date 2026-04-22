@@ -229,6 +229,7 @@ public class GitUtility implements AutoCloseable {
     }
     RevCommit head = git.getRepository().parseCommit(git.getRepository().resolve("HEAD"));
     git.revert().include(head).call();
+    // TODO: Don't do remote manipulation for artifact submission, as this needs write access
     pushChanges();
   }
 

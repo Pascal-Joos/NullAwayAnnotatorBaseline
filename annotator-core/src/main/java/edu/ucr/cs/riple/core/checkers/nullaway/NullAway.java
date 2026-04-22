@@ -881,6 +881,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                   error.messageType,
                   error.position.diagnosticLine.trim(),
                   error.message));
+          // TODO: Don't do remote manipulation for artifact submission, as this needs write access
           git.pushChanges();
           String commitHash = git.getLatestCommitHash();
           TSVFiles.addRow(
