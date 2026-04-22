@@ -559,7 +559,7 @@ public class Config {
             false,
             "Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.");
     options.addOption(pushCommitsOption);
-    
+
     HelpFormatter formatter = new HelpFormatter();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;

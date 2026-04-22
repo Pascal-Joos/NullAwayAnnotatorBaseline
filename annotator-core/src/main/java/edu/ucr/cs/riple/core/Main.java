@@ -51,7 +51,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.checkerframework.checker.units.qual.radians;
 import org.slf4j.LoggerFactory;
 
 /** Starting point. */
@@ -146,11 +145,11 @@ public class Main {
   public static void main(String[] args) {
     System.out.println("ANNOTATOR VERSION: " + VERSION + ", BUILD: " + BUILD_VERSION);
     System.out.println("Received arguments: " + String.join(", ", args));
-    
+
     Options options = createOptions();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
-    
+
     try {
       cmd = parser.parse(options, args);
     } catch (ParseException e) {
@@ -159,7 +158,7 @@ public class Main {
       System.exit(1);
       return;
     }
-    
+
     // Extract positional argument (benchmark name)
     String[] remainingArgs = cmd.getArgs();
     if (remainingArgs.length == 0) {
@@ -169,16 +168,17 @@ public class Main {
       return;
     }
     String benchmarkName = remainingArgs[0];
-    
+
     // Parse mode option
     String mode = cmd.getOptionValue("mode", "advanced");
     if (!Arrays.asList("basic", "agent_baseline", "disabled", "advanced").contains(mode)) {
-      System.err.println("Error: Invalid mode. Allowed values are: basic, agent_baseline, disabled, advanced");
+      System.err.println(
+          "Error: Invalid mode. Allowed values are: basic, agent_baseline, disabled, advanced");
       printHelp(options);
       System.exit(1);
       return;
     }
-    
+
     // Parse boolean flags
     boolean verbose = cmd.hasOption("verbose");
     boolean combined = cmd.hasOption("combined");
@@ -194,7 +194,7 @@ public class Main {
         return;
       }
     }
-    
+
     System.clearProperty("ANNOTATOR_TEST_MODE");
 
     System.out.println(
@@ -405,25 +405,16 @@ public class Main {
             .option("m")
             .hasArg()
             .argName("mode")
-            .desc(
-                "Execution mode: basic, agent_baseline, disable, or advanced (default: advanced)")
+            .desc("Execution mode: basic, agent_baseline, disable, or advanced (default: advanced)")
             .build());
 
     // Verbose flag
     options.addOption(
-        Option.builder()
-            .longOpt("verbose")
-            .option("v")
-            .desc("Enable verbose output")
-            .build());
+        Option.builder().longOpt("verbose").option("v").desc("Enable verbose output").build());
 
     // Combined mode flag
     options.addOption(
-        Option.builder()
-            .longOpt("combined")
-            .option("c")
-            .desc("Enable combined mode")
-            .build());
+        Option.builder().longOpt("combined").option("c").desc("Enable combined mode").build());
 
     // Continue run at error option
     options.addOption(
@@ -437,11 +428,12 @@ public class Main {
 
     // Push created commits to the target benchmark repositories
     options.addOption(
-      Option.builder()
-      .longOpt("pushCommits")
-      .option("p")
-      .desc("Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.")
-      .build());
+        Option.builder()
+            .longOpt("pushCommits")
+            .option("p")
+            .desc(
+                "Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.")
+            .build());
 
     return options;
   }
