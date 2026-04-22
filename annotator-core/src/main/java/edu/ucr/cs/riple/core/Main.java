@@ -44,6 +44,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.LoggerFactory;
 
 /** Starting point. */
@@ -138,29 +145,55 @@ public class Main {
   public static void main(String[] args) {
     System.out.println("ANNOTATOR VERSION: " + VERSION + ", BUILD: " + BUILD_VERSION);
     System.out.println("Received arguments: " + String.join(", ", args));
-    String benchmarkName = args[0];
-    boolean isSimpleBaseline = args.length > 1 && args[1].equals("basic");
-    boolean isAgentBaseline = args.length > 1 && args[1].equals("agent_baseline");
-    boolean isDisabled = args.length > 1 && args[1].equals("disable");
-    boolean verbose = Arrays.asList(args).contains("verbose");
-    boolean combined = Arrays.asList(args).contains("--combined");
-    boolean continueRun = Arrays.asList(args).contains("--continueRunAtError");
+    
+    Options options = createOptions();
+    CommandLineParser parser = new DefaultParser();
+    CommandLine cmd;
+    
+    try {
+      cmd = parser.parse(options, args);
+    } catch (ParseException e) {
+      System.err.println("Error parsing command line arguments: " + e.getMessage());
+      printHelp(options);
+      System.exit(1);
+      return;
+    }
+    
+    // Extract positional argument (benchmark name)
+    String[] remainingArgs = cmd.getArgs();
+    if (remainingArgs.length == 0) {
+      System.err.println("Error: Benchmark name is required as the first argument");
+      printHelp(options);
+      System.exit(1);
+      return;
+    }
+    String benchmarkName = remainingArgs[0];
+    
+    // Parse mode option
+    String mode = cmd.getOptionValue("mode", "advanced");
+    if (!Arrays.asList("basic", "agent_baseline", "disabled", "advanced").contains(mode)) {
+      System.err.println("Error: Invalid mode. Allowed values are: basic, agent_baseline, disabled, advanced");
+      printHelp(options);
+      System.exit(1);
+      return;
+    }
+    
+    // Parse boolean flags
+    boolean verbose = cmd.hasOption("verbose");
+    boolean combined = cmd.hasOption("combined");
+    boolean continueRun = cmd.hasOption("continueRunAtError");
     int continueRunAtError = -1;
     if (continueRun) {
-      continueRunAtError =
-          Integer.parseInt(args[Arrays.asList(args).indexOf("--continueRunAtError") + 1]);
+      try {
+        continueRunAtError = Integer.parseInt(cmd.getOptionValue("continueRunAtError"));
+      } catch (NumberFormatException e) {
+        System.err.println("Error: continueRunAtError value must be an integer");
+        System.exit(1);
+        return;
+      }
     }
+    
     System.clearProperty("ANNOTATOR_TEST_MODE");
-    String mode;
-    if (isDisabled) {
-      mode = "disabled";
-    } else if (isSimpleBaseline) {
-      mode = "basic";
-    } else if (isAgentBaseline) {
-      mode = "agent_baseline";
-    } else {
-      mode = "advanced";
-    }
 
     System.out.println(
         "Running "
@@ -208,7 +241,7 @@ public class Main {
       "NULLAWAY",
       "-app",
       benchmark.annotatedPackage,
-      isDisabled ? "" : "-di", // deactivate inference
+      mode.equals("disabled") ? "" : "-di", // deactivate inference
       "-rrem", // resolve remaining errors
       mode,
       // "-rboserr", // redirect build output stream and error stream
@@ -353,5 +386,55 @@ public class Main {
     config.combinedTestFailuresPath = root.resolve("total-test-failures.tsv");
     // or WARN if too noisy
     return root;
+  }
+
+  private static Options createOptions() {
+    Options options = new Options();
+
+    // Mode option
+    options.addOption(
+        Option.builder()
+            .longOpt("mode")
+            .hasArg()
+            .argName("mode")
+            .desc(
+                "Execution mode: basic, agent_baseline, disable, or advanced (default: advanced)")
+            .build());
+
+    // Verbose flag
+    options.addOption(
+        Option.builder()
+            .longOpt("verbose")
+            .desc("Enable verbose output")
+            .build());
+
+    // Combined mode flag
+    options.addOption(
+        Option.builder()
+            .longOpt("combined")
+            .desc("Enable combined mode")
+            .build());
+
+    // Continue run at error option
+    options.addOption(
+        Option.builder()
+            .longOpt("continueRunAtError")
+            .hasArg()
+            .argName("iteration")
+            .desc("Continue execution at specified error iteration")
+            .build());
+
+    return options;
+  }
+
+  private static void printHelp(Options options) {
+    HelpFormatter formatter = new HelpFormatter();
+    formatter.printHelp(
+        "java -cp <classpath> edu.ucr.cs.riple.core.Main <benchmark> [options]",
+        "Options:",
+        options,
+        "\nExample:\n"
+            + "  java -cp <classpath> edu.ucr.cs.riple.core.Main libgdx --mode basic --verbose\n"
+            + "  java -cp <classpath> edu.ucr.cs.riple.core.Main zuul --continueRunAtError 5");
   }
 }
