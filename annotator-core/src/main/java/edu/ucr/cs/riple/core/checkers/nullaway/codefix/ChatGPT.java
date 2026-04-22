@@ -455,7 +455,8 @@ public class ChatGPT {
     java.io.Console console = System.console();
     if (console != null) {
       char[] pw =
-          console.readPassword("OPENAI_API_KEY not set in .env. Please enter your OpenAI API key: ");
+          console.readPassword(
+              "OPENAI_API_KEY not set in .env. Please enter your OpenAI API key: ");
       if (pw != null) {
         openAiApiKey = new String(pw).trim();
         if (!openAiApiKey.isEmpty()) {
