@@ -194,6 +194,7 @@ public class Config {
   public Path combinedTestFailuresPath;
   public boolean isTestMode = System.getProperty("ANNOTATOR_TEST_MODE") != null;
   public boolean combined = false;
+  public boolean pushCommits = false;
 
   public String modelName = "openai/gpt-5.1";
   public double agentCostLimit = 0.5;
@@ -551,6 +552,14 @@ public class Config {
     continueRunAtErrOption.setRequired(false);
     options.addOption(continueRunAtErrOption);
 
+    Option pushCommitsOption =
+        new Option(
+            "p",
+            "pushCommits",
+            false,
+            "Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.");
+    options.addOption(pushCommitsOption);
+    
     HelpFormatter formatter = new HelpFormatter();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
@@ -663,6 +672,7 @@ public class Config {
     this.continueRun = cmd.hasOption(continueRunAtErrOption);
     this.continueRunAtError =
         this.continueRun ? Integer.parseInt(cmd.getOptionValue(continueRunAtErrOption)) : -1;
+    this.pushCommits = cmd.hasOption(pushCommitsOption);
   }
 
   /**

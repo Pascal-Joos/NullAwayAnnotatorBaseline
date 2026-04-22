@@ -51,6 +51,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.checkerframework.checker.units.qual.radians;
 import org.slf4j.LoggerFactory;
 
 /** Starting point. */
@@ -181,6 +182,7 @@ public class Main {
     // Parse boolean flags
     boolean verbose = cmd.hasOption("verbose");
     boolean combined = cmd.hasOption("combined");
+    boolean pushCommits = cmd.hasOption("pushCommits");
     boolean continueRun = cmd.hasOption("continueRunAtError");
     int continueRunAtError = -1;
     if (continueRun) {
@@ -248,6 +250,7 @@ public class Main {
       verbose ? "-rboserr" : "",
       "--depth",
       "6",
+      pushCommits ? "--pushCommits" : "",
       continueRun ? "--continueRunAtError" : "",
       continueRun ? String.valueOf(continueRunAtError) : ""
     };
@@ -270,11 +273,13 @@ public class Main {
         git.resetHard();
         git.pull();
         git.deleteLocalBranch(config.branchName());
-        // TODO: Don't do remote manipulation for artifact submission, as this needs write access
-        git.deleteRemoteBranch(config.branchName());
+        if (pushCommits) {
+          git.deleteRemoteBranch(config.branchName());
+        }
         git.createAndCheckoutBranch(config.branchName());
-        // TODO: Don't do remote manipulation for artifact submission, as this needs write access
-        git.pushBranch(config.branchName());
+        if (pushCommits) {
+          git.pushBranch(config.branchName());
+        }
       } else {
         git.checkoutBranch(config.branchName());
         git.resetHard();
@@ -288,11 +293,13 @@ public class Main {
 
     // push
     try (GitUtility git = GitUtility.instance(config)) {
-      System.out.printf("Pushing changes to branch %s...%n", config.branchName());
+      System.out.printf("Commiting changes to branch %s...%n", config.branchName());
       git.stageAllChanges();
       git.commitChanges("Done");
-      // TODO: Don't do remote manipulation for artifact submission, as this needs write access
-      git.pushChanges();
+      if (pushCommits) {
+        System.out.printf("Pushing changes to branch %s...%n", config.branchName());
+        git.pushChanges();
+      }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -395,6 +402,7 @@ public class Main {
     options.addOption(
         Option.builder()
             .longOpt("mode")
+            .option("m")
             .hasArg()
             .argName("mode")
             .desc(
@@ -405,6 +413,7 @@ public class Main {
     options.addOption(
         Option.builder()
             .longOpt("verbose")
+            .option("v")
             .desc("Enable verbose output")
             .build());
 
@@ -412,6 +421,7 @@ public class Main {
     options.addOption(
         Option.builder()
             .longOpt("combined")
+            .option("c")
             .desc("Enable combined mode")
             .build());
 
@@ -419,10 +429,19 @@ public class Main {
     options.addOption(
         Option.builder()
             .longOpt("continueRunAtError")
+            .option("r")
             .hasArg()
             .argName("iteration")
             .desc("Continue execution at specified error iteration")
             .build());
+
+    // Push created commits to the target benchmark repositories
+    options.addOption(
+      Option.builder()
+      .longOpt("pushCommits")
+      .option("p")
+      .desc("Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.")
+      .build());
 
     return options;
   }

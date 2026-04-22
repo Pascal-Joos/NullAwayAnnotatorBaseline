@@ -223,14 +223,15 @@ public class GitUtility implements AutoCloseable {
    *
    * @throws Exception if an error occurs during the revert operation.
    */
-  public void revertLastCommit() throws Exception {
+  public void revertLastCommit(boolean pushChanges) throws Exception {
     if (!config.actualRunEnabled()) {
       return;
     }
     RevCommit head = git.getRepository().parseCommit(git.getRepository().resolve("HEAD"));
     git.revert().include(head).call();
-    // TODO: Don't do remote manipulation for artifact submission, as this needs write access
-    pushChanges();
+    if (pushChanges) {
+      pushChanges();
+    }
   }
 
   /** Closes the Git repository. */

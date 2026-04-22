@@ -872,7 +872,7 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
     } else {
       if (success) {
         try (GitUtility git = GitUtility.instance(config)) {
-          System.out.println("Pushing changes to git...");
+          System.out.println("Commiting changes...");
           git.stageAllChanges();
           git.commitChanges(
               String.format(
@@ -881,12 +881,14 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                   error.messageType,
                   error.position.diagnosticLine.trim(),
                   error.message));
-          // TODO: Don't do remote manipulation for artifact submission, as this needs write access
-          git.pushChanges();
+          if (config.pushCommits) {
+            System.out.println("Pushing changes to git...");
+            git.pushChanges();
+          }
           String commitHash = git.getLatestCommitHash();
           TSVFiles.addRow(
               counter.get() + "\t" + error.toTSV() + "\t" + commitHash, config.commitHashPath);
-          git.revertLastCommit();
+          git.revertLastCommit(config.pushCommits);
 
         } catch (Exception ex) {
           System.err.println("Error while pushing changes: " + ex.getMessage());
