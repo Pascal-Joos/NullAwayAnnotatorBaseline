@@ -9,6 +9,8 @@ Tested with Docker 29.4.1
 
 ### 1.2 Installation using VS Code Dev Container
 
+Don't open the VS Code Dev Container before completing the steps 1 to 3.
+
 1. Clone this repository using ssh and checkout the branch `joos/auto-code-fix-baseline`.
 
 2. Run: ```git submodule update --init --recursive``` to initialize the mini-swe-agent submodule.
@@ -26,11 +28,17 @@ Refer to these folders for the logs of executed runs and for any commits created
 
 ## 2. Quick Run
 
-Then run either NullRepair (advanced), the basic baseline (basic), or the mini-SWE-agent baseline (agent_baseline).  
+Then run either NullRepair (advanced), the SinglePrompt baseline (basic), or the mini-SWE-agent baseline (agent_baseline).  
 Per default the project is reset for each error (per-patch mode). Set --combined to stack successful error patches.  
 
-Example run:  
+Run NullRepair on project eureka:  
 ```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced```
+
+Run SinglePrompt baseline on project eureka:  
+```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode basic```
+
+Run mini-SWE-agent baseline on project eureka:  
+```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode agent_baseline```
 
 ## 3. Inspecting Logs and Data
 
