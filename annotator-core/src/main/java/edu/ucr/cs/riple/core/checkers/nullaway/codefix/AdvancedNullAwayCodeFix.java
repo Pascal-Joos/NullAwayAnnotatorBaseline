@@ -685,21 +685,27 @@ public class AdvancedNullAwayCodeFix extends NullAwayCodeFix {
     logger.trace("Fixing triggered errors for location: {}", location);
     Set<NullAwayError> errors = getTriggeredErrorsFromLocation(location);
     logger.trace("Triggered errors size: {}", errors.size());
-    // add annotations for resolvable errors.
     Set<Fix> fixes =
         errors.stream()
             .filter(e -> !e.getResolvingFixes().isEmpty())
             .map(e -> e.getResolvingFixes().iterator().next())
             .collect(Collectors.toSet());
+
+    Set<NullAwayError> unresolvableErrors =
+        errors.stream().filter(e -> e.getResolvingFixes().isEmpty()).collect(Collectors.toSet());
+    // This first adds all annotations from the set of fixes, checks their impact, and then reverts
+    // the fixes.
+    // Therefore, this must run before injecting the fixes without checking the impact.
+    unresolvableErrors.addAll(getTriggeredErrorsFromFixes(fixes));
+
+    // add annotations for resolvable errors.
     logger.trace("Adding annotations for resolvable errors, size: {}", fixes.size());
     for (Fix fix : fixes) {
       logger.trace("Injecting fix as part of solution without checking impact: {}", fix);
     }
     context.injector.injectFixes(fixes);
+
     // resolve the ones where annotation cannot fix
-    Set<NullAwayError> unresolvableErrors =
-        errors.stream().filter(e -> e.getResolvingFixes().isEmpty()).collect(Collectors.toSet());
-    unresolvableErrors.addAll(getTriggeredErrorsFromFixes(fixes));
     Set<RegionRewrite> changes = new HashSet<>();
     for (NullAwayError unresolvableError : unresolvableErrors) {
       logger.trace("Resolving unresolvable error for triggered error: {}", unresolvableError);
