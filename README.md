@@ -28,17 +28,7 @@ Refer to these folders for the logs of executed runs and for any commits created
 
 ## 2. Quick Run
 
-Then run either NullRepair (advanced), the SinglePrompt baseline (basic), or the mini-SWE-agent baseline (agent_baseline).  
-Per default the project is reset for each error (per-patch mode). Set --combined to stack successful error patches.  
 
-Run NullRepair on project eureka:  
-```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced```
-
-Run SinglePrompt baseline on project eureka:  
-```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode basic```
-
-Run mini-SWE-agent baseline on project eureka:  
-```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode agent_baseline```
 
 ## 3. Inspecting Logs and Data
 
@@ -51,7 +41,25 @@ TODO: Add instructions.
 
 ## 5. Run a large-scale Experiment
 
-TODO: Currently this is the same as the quick run, so shorter example for quick run is to be created.
+Follow the installation steps in 1. and then run one of the following commands to run a large-scale experiment on a target project.  
+Run either NullRepair (advanced), the SinglePrompt baseline (basic), or the mini-SWE-agent baseline (agent_baseline).  
+Per default the project is reset for each error (patch-level analysis). Set --combined to stack successful error patches (aggregate-level analysis).  
+
+The following commands run the experiment on project eureka.  
+
+Run NullRepair on project eureka:  
+```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced```
+
+Run SinglePrompt baseline on project eureka:  
+```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode basic```
+
+Run mini-SWE-agent baseline on project eureka:  
+```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode agent_baseline```
+
+List of all projects: conductor, eureka, glide, gson, jadx, libgdx, litiengine, mockito, retrofit, spring-boot, wala-util, zuul
+
+Experiments on different projects can be run in parallel. However, multiple experiments on the same project cannot be run simultaneously.  
+The logs of each run are stored in a new folder in `../nullrepair_log_files/logs` with the name of the project and experiment mode.
 
 ## 6. Run on Your Own Project
 
@@ -82,35 +90,35 @@ See the following commit for an example on how to do this:
 https://github.com/Pascal-Joos/jcommander/commit/f608a5ae8a069d05f588a4d5b1b0c130b7594bbd  
 This includes adding a file prepare.sh.
 
-1. Run the `prepare.sh` script to prepare the project for NullRepair.
+5. Run the `prepare.sh` script to prepare the project for NullRepair.
 
-2. Run the gradlew spotlessApply command and commit the changes.
+6. Run the gradlew spotlessApply command and commit the changes.
 
     ```bash
     ./gradlew spotlessApply
     ```
 
-3. Add the project to the list of target projects with adequate configuration in [annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java).  
+7. Add the project to the list of target projects with adequate configuration in [annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java#L136).  
 For our example, after line 136 add the following:  
 
     ```java
     benchmarks.put("jcommander", new Benchmark("com.beust.jcommander", "jcommander", "compileJava", "test"));
     ```
 
-1. Rebuild the annotator-core module to include the new project in the configuration. Run this command from the root of the repository:
+8. Rebuild the annotator-core module to include the new project in the configuration. Run this command from the root of the repository:
 
     ```bash
     ./gradlew spotlessApply
     ./gradlew build -x test
     ```
 
-2. First run NullAwayAnnotator on the project to add nullability annotations to the code, without running NullRepair. Then, commit these changes to the `nimak/auto-code-fix` branch. This way, the changes made by NullRepair are more clear and the project is in a clean state before running NullRepair.  
+9. First run NullAwayAnnotator on the project to add nullability annotations to the code, without running NullRepair. Then, commit these changes to the `nimak/auto-code-fix` branch. This way, the changes made by NullRepair are more clear and the project is in a clean state before running NullRepair.  
 
     ```bash
     java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar jcommander --mode disabled
     ```
 
-3.  Finally, run NullRepair on the project:  
+10. Finally, run NullRepair on the project:  
 
     ```bash
     java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar jcommander --mode advanced
