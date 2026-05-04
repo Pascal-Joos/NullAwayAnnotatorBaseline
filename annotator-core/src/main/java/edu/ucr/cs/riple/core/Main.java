@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -195,6 +196,14 @@ public class Main {
       }
     }
 
+    boolean selectedErrorIdsProvided = cmd.hasOption("selectedErrorIds");
+    if (selectedErrorIdsProvided && continueRun) {
+      System.err.println("Error: --selectedErrorIds cannot be combined with --continueRunAtError");
+      printHelp(options);
+      System.exit(1);
+      return;
+    }
+
     System.clearProperty("ANNOTATOR_TEST_MODE");
 
     System.out.println(
@@ -206,7 +215,10 @@ public class Main {
             + (combined ? " Combined mode is ON." : ""));
     Benchmark benchmark = benchmarks.get(benchmarkName);
     if (benchmark == null) {
-      throw new IllegalArgumentException("Unknown benchmark: " + benchmarkName);
+      System.err.println("Error: Unknown benchmark: " + benchmarkName);
+      printHelp(options);
+      System.exit(1);
+      return;
     }
     String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
     deleteOutDir(benchmark);
@@ -252,7 +264,9 @@ public class Main {
       "6",
       pushCommits ? "--pushCommits" : "",
       continueRun ? "--continueRunAtError" : "",
-      continueRun ? String.valueOf(continueRunAtError) : ""
+      continueRun ? String.valueOf(continueRunAtError) : "",
+      selectedErrorIdsProvided ? "--selectedErrorIds" : "",
+      selectedErrorIdsProvided ? cmd.getOptionValue("selectedErrorIds") : ""
     };
 
     Config config = new Config(argsArray);
@@ -433,6 +447,18 @@ public class Main {
             .option("p")
             .desc(
                 "Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.")
+            .build());
+
+    // If only to be run on selected error IDs (e.g., for a quick run on a subset of errors)
+    options.addOption(
+        Option.builder()
+            .longOpt("selectedErrorIds")
+            .option("s")
+            .hasArg()
+            .argName("ids")
+            .type(ArrayList.class)
+            .desc(
+                "Comma-separated list of error IDs to run on (e.g., 1,2,3). This must not be combined with --continueRunAtError.")
             .build());
 
     return options;

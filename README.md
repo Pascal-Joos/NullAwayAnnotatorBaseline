@@ -24,16 +24,67 @@ Refer to these folders for the logs of executed runs and for any commits created
 5. Activate the Python environment by running (if not yet active):  
 ```source .venv/bin/activate```
 
-6. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.
+6. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.  
+This is needed to run NullRepair and the baselines, which use the OpenAI API.  
+For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 4.).  
+```python3 set_openai_key.py```
 
 ## 2. Quick Run
 
+A small example run where NullRepair is run on three errors of project eureka can be executed with the following command:  
+```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --selectedErrorIds 2,4,5```
 
+Expected console output (truncated):  
+
+```text
+ANNOTATOR VERSION: 3, BUILD: 6
+Received arguments: eureka, --mode, advanced, --selectedErrorIds, 2,4,5
+Running eureka benchmark in advanced mode.
+Resolve remaining errors mode: ADVANCED
+Selected error IDs: [2, 4, 5]
+Configuring logging for benchmark: eureka, branch: nimak/agentic-advanced-3
+Root path for logs: /home/vscode/nullrepair_log_files/logs/eureka/agentic-advanced-3
+Running on branch name: nimak/agentic-advanced-3
+Starting annotator...
+Preprocessing...
+Annotating...false
+Loading cache...
+Loaded 0 entries from cache.
+Max Depth level: 1
+Analyzing at level 1, Scheduling for: 5 builds for: 14 fixes
+Processing 100% [===============================================================================================================================================] 5/5 (0:00:18 / 0:00:00) 
+2 : TOP LEVEL CALL TO FIX ERROR: Type='METHOD_NO_INIT', message='initializer method does not guarantee @NonNull field serverConfig (line 106) is initialized along all control-flow paths (remember to check for exceptions or early returns).'
+/home/vscode/nullness-benchmarks/eureka/eureka-core/src/main/java/com/netflix/eureka/RateLimitingFilter.java:114
+  public RateLimitingFilter() {}
+Resetting NullAwayCodeFix state.
+Sending request to OpenAI...
+Response received from OpenAI.
+Token usage - Uncached Prompt: 406, Cached Prompt: 0, Completion: 497, Total: 903
+Cached response
+Finished processing.
+Time taken to fix error: 3713 ms
+Writing log to file...
+Logging ChatGPT token usage...
+Calculating run metrics...
+Running tests...
+Trying to commit changes...
+Commiting changes...
+4 : TOP LEVEL CALL TO FIX ERROR: Type='DEREFERENCE_NULLABLE', message='dereferenced expression resourceRecordSetWithHostedZone is @Nullable'
+/home/vscode/nullness-benchmarks/eureka/eureka-core/src/main/java/com/netflix/eureka/aws/Route53Binder.java:277
+      resourceRecordSetWithHostedZone
+...
+```
+
+Logs are then located at `../nullrepair_log_files/logs/eureka/agentic-advanced-3` and the changes made by NullRepair are committed to the branch `nimak/agentic-advanced-3` in the target project repository at `../nullness-benchmarks/eureka`.
+
+TODO: More detailed instructions for inspecting the changes made by NullRepair and the logs of the run.
 
 ## 3. Inspecting Logs and Data
 
 See `../nullrepair_log_files/logs` for the logs of executed runs and `../nullness-benchmarks` for the target projects.  
 The log files are organized by project and experiment mode. Each run creates a new log folder.
+
+TODO: More details
 
 ## 4. Reproduce Tables and Figures in the Paper
 

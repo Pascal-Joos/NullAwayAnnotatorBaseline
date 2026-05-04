@@ -431,6 +431,13 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                       logger.trace(
                           "{} : SKIPPING ERROR DUE TO CONTINUE RUN FLAG: {}", counter.get(), error);
                       return;
+                    } else if (config.selectedErrorIdsProvided
+                        && !config.selectedErrorIds.contains(counter.get())) {
+                      logger.trace(
+                          "{} : SKIPPING ERROR DUE TO SELECTED ERROR IDS: {}",
+                          counter.get(),
+                          error);
+                      return;
                     }
 
                     System.out.println(counter.get() + " : TOP LEVEL CALL TO FIX ERROR: " + error);
