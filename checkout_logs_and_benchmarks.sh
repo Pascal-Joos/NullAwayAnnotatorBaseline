@@ -23,6 +23,7 @@ current_dir=$(pwd)
 # Clone the nullrepair_log_files repository if it doesn't already exist
 if [ ! -d "../nullrepair_log_files" ]; then
     git clone git@github.com:Pascal-Joos/nullrepair_log_files.git ../nullrepair_log_files
+    cd ../nullrepair_log_files && git checkout adpations_for_artifact_submission && cd ..
 else
     echo "Directory ../nullrepair_log_files already exists. Skipping clone."
 fi
