@@ -112,6 +112,14 @@ List of all projects: conductor, eureka, glide, gson, jadx, libgdx, litiengine, 
 Experiments on different projects can be run in parallel. However, multiple experiments on the same project cannot be run simultaneously.  
 The logs of each run are stored in a new folder in `../nullrepair_log_files/logs` with the name of the project and experiment mode.
 
+If you want to run all experiments on all projects with all three modes and both patch-level and aggregate-level analysis, you can run the following script:  
+
+```bash
+python3 run_nullrepair_and_baselines.py
+```
+
+This is very long-running and expensive. We recommend running the experiments in smaller batches.
+
 ## 6. Run on Your Own Project
 
 You can run NullRepair on new Java projects.  
