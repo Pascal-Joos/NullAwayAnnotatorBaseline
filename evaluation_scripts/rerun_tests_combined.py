@@ -82,10 +82,10 @@ PROJECTS = {
      #}
 }
 
-BENCHMARKS_PATH = "/home/vscode/nullness-benchmarks"
-BENCHMARKS_LOGS = "/home/vscode/nullrepair_log_files/logs"
-TESTS_PATH = "/home/vscode/nullrepair_log_files/auto-fix-test"
-STATUS_PATH = "/home/vscode/nullrepair_log_files/status"
+BENCHMARKS_PATH = "/home/vscode/NullRepairBaseline/benchmarks"
+BENCHMARKS_LOGS = "/home/vscode/NullRepairBaseline/evaluation_data/logs"
+TESTS_PATH = "/home/vscode/NullRepairBaseline/evaluation_data/auto-fix-test"
+STATUS_PATH = "/home/vscode/NullRepairBaseline/evaluation_data/status"
 VERSION = "agentic-basic-2-combined-evaluation-run-gpt5.1"
 EXECUTION_LOG = f"execution-{os.path.basename(__file__)}.log"
 

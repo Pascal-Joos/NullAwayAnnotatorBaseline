@@ -61,6 +61,8 @@ public class Main {
 
   public static final int BUILD_VERSION = 6;
 
+  public static final Path ROOT_PATH = Paths.get("/home/vscode/NullRepairBaseline");
+
   public static class Benchmark {
     public final String annotatedPackage;
     public final String path;
@@ -220,7 +222,7 @@ public class Main {
       System.exit(1);
       return;
     }
-    String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
+    Path PROJECT_PATH = ROOT_PATH.resolve("benchmarks").resolve(benchmark.path);
     deleteOutDir(benchmark);
 
     String fullTestCommand =
@@ -271,8 +273,8 @@ public class Main {
 
     Config config = new Config(argsArray);
     config.benchmarkName = benchmarkName;
-    config.benchmarkPath = Paths.get(PROJECT_PATH);
-    config.initialErrorsLogPath = Paths.get(PROJECT_PATH, "initial_build_output.log");
+    config.benchmarkPath = PROJECT_PATH;
+    config.initialErrorsLogPath = PROJECT_PATH.resolve("initial_build_output.log");
     config.combined = combined;
     configureLogging(config);
 
@@ -320,9 +322,9 @@ public class Main {
   }
 
   public static void deleteOutDir(Benchmark benchmark) {
-    String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
+    Path PROJECT_PATH = ROOT_PATH.resolve("benchmarks").resolve(benchmark.path);
     // delete dir
-    Path outDir = Paths.get(PROJECT_PATH + "/annotator-out/0");
+    Path outDir = PROJECT_PATH.resolve("annotator-out").resolve("0");
     if (outDir.toFile().exists()) {
       try {
         Files.walkFileTree(
@@ -354,25 +356,25 @@ public class Main {
             + config.benchmarkName
             + ", branch: "
             + config.branchName());
-    Path root =
+    Path log_root =
         Paths.get(
-            System.getProperty("user.home"),
-            "nullrepair_log_files",
+            ROOT_PATH.toString(),
+            "evaluation_data",
             "logs",
             config.benchmarkName,
             config.branchName().split("/")[1]
                 + (config.continueRun ? "_continueAtError_" + config.continueRunAtError : ""));
-    System.out.println("Root path for logs: " + root);
+    System.out.println("Root path for logs: " + log_root);
     // Delete log
     try {
-      if (Files.exists(root)) {
-        MoreFiles.deleteRecursively(root, RecursiveDeleteOption.ALLOW_INSECURE);
+      if (Files.exists(log_root)) {
+        MoreFiles.deleteRecursively(log_root, RecursiveDeleteOption.ALLOW_INSECURE);
       }
-      Files.createDirectories(root);
+      Files.createDirectories(log_root);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    String filePath = root.resolve("app.log").toString();
+    String filePath = log_root.resolve("app.log").toString();
 
     LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
     context.reset();
@@ -400,13 +402,13 @@ public class Main {
         (thread, throwable) -> {
           rootLogger.error("Uncaught exception in thread: {}", thread.getName(), throwable);
         });
-    config.logPath = root.resolve("app.log");
-    config.metricsPath = root.resolve("metrics.tsv");
-    config.commitHashPath = root.resolve("commits.tsv");
-    config.timerPath = root.resolve("timers.tsv");
-    config.combinedTestFailuresPath = root.resolve("total-test-failures.tsv");
+    config.logPath = log_root.resolve("app.log");
+    config.metricsPath = log_root.resolve("metrics.tsv");
+    config.commitHashPath = log_root.resolve("commits.tsv");
+    config.timerPath = log_root.resolve("timers.tsv");
+    config.combinedTestFailuresPath = log_root.resolve("total-test-failures.tsv");
     // or WARN if too noisy
-    return root;
+    return log_root;
   }
 
   private static Options createOptions() {

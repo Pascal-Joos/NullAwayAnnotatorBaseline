@@ -21,7 +21,7 @@ PROJECTS = [
 
 GITHUB_BASE_URL = "https://github.com/Pascal-Joos/{}/commit/{}"
 
-BENCHMARKS_LOGS = "/home/vscode/nullrepair_log_files/logs"
+BENCHMARKS_LOGS = "/home/vscode/NullRepairBaseline/evaluation_data/logs"
 
 AGENT_BASELINE_VERSION = "agentic-agent_baseline-2-evaluation-run-gpt5.1"
 BASIC_VERSION = "agentic-basic-2-evaluation-run-gpt5.1"

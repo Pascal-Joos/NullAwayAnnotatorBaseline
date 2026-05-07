@@ -15,16 +15,16 @@ Don't open the VS Code Dev Container before completing the steps 1 to 3.
 
 2. Run: ```git submodule update --init --recursive``` to initialize the mini-swe-agent submodule.
 
-3. Run: `bash checkout_logs_and_benchmarks.sh`.  
-This clones the nullrepair_log_files repository into `../nullrepair_log_files` and the target projects for the experiment into `../nullness-benchmarks` (i.e., at the same level as the nullrepair repository).  
+3. Run: `bash checkout_benchmarks.sh`.  
+This clones the target projects for the experiment into `benchmarks`.  
 Refer to these folders for the logs of executed runs and for any commits created by NullRepair.
 
-4. Reopen the project in a devcontainer using the VSCode Dev Container extension. All needed dependencies and setup steps are then executed automatically. Wait until the postcreatecommand finishes executing and the terminal is ready to use.
+1. Reopen the project in a devcontainer using the VSCode Dev Container extension. All needed dependencies and setup steps are then executed automatically. Wait until the postcreatecommand finishes executing and the terminal is ready to use.
 
-5. Activate the Python environment by running (if not yet active):  
+2. Activate the Python environment by running (if not yet active):  
 ```source .venv/bin/activate```
 
-6. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.  
+1. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.  
 This is needed to run NullRepair and the baselines, which use the OpenAI API.  
 For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 4.).  
 ```python3 set_openai_key.py```
@@ -43,7 +43,7 @@ Running eureka benchmark in advanced mode.
 Resolve remaining errors mode: ADVANCED
 Selected error IDs: [2, 4, 5]
 Configuring logging for benchmark: eureka, branch: nimak/agentic-advanced-3
-Root path for logs: /home/vscode/nullrepair_log_files/logs/eureka/agentic-advanced-3
+Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/agentic-advanced-3
 Running on branch name: nimak/agentic-advanced-3
 Starting annotator...
 Preprocessing...
@@ -54,7 +54,7 @@ Max Depth level: 1
 Analyzing at level 1, Scheduling for: 5 builds for: 14 fixes
 Processing 100% [===============================================================================================================================================] 5/5 (0:00:18 / 0:00:00) 
 2 : TOP LEVEL CALL TO FIX ERROR: Type='METHOD_NO_INIT', message='initializer method does not guarantee @NonNull field serverConfig (line 106) is initialized along all control-flow paths (remember to check for exceptions or early returns).'
-/home/vscode/nullness-benchmarks/eureka/eureka-core/src/main/java/com/netflix/eureka/RateLimitingFilter.java:114
+/home/vscode/benchmarks/eureka/eureka-core/src/main/java/com/netflix/eureka/RateLimitingFilter.java:114
   public RateLimitingFilter() {}
 Resetting NullAwayCodeFix state.
 Sending request to OpenAI...
@@ -70,18 +70,18 @@ Running tests...
 Trying to commit changes...
 Commiting changes...
 4 : TOP LEVEL CALL TO FIX ERROR: Type='DEREFERENCE_NULLABLE', message='dereferenced expression resourceRecordSetWithHostedZone is @Nullable'
-/home/vscode/nullness-benchmarks/eureka/eureka-core/src/main/java/com/netflix/eureka/aws/Route53Binder.java:277
+/home/vscode/benchmarks/eureka/eureka-core/src/main/java/com/netflix/eureka/aws/Route53Binder.java:277
       resourceRecordSetWithHostedZone
 ...
 ```
 
-Logs are then located at `../nullrepair_log_files/logs/eureka/agentic-advanced-3` and the changes made by NullRepair are committed to the branch `nimak/agentic-advanced-3` in the target project repository at `../nullness-benchmarks/eureka`.
+Logs are then located at `evaluation_data/logs/eureka/agentic-advanced-3` and the changes made by NullRepair are committed to the branch `nimak/agentic-advanced-3` in the target project repository at `benchmarks/eureka`.
 
 TODO: More detailed instructions for inspecting the changes made by NullRepair and the logs of the run.
 
 ## 3. Inspecting Logs and Data
 
-See `../nullrepair_log_files/logs` for the logs of executed runs and `../nullness-benchmarks` for the target projects.  
+See `evaluation_data/logs` for the logs of executed runs and `benchmarks` for the target projects.  
 The log files are organized by project and experiment mode. Each run creates a new log folder.
 
 TODO: More details
@@ -110,7 +110,7 @@ Run mini-SWE-agent baseline on project eureka:
 List of all projects: conductor, eureka, glide, gson, jadx, libgdx, litiengine, mockito, retrofit, spring-boot, wala-util, zuul
 
 Experiments on different projects can be run in parallel. However, multiple experiments on the same project cannot be run simultaneously.  
-The logs of each run are stored in a new folder in `../nullrepair_log_files/logs` with the name of the project and experiment mode.
+The logs of each run are stored in a new folder in `evaluation_data/logs` with the name of the project and experiment mode.
 
 If you want to run all experiments on all projects with all three modes and both patch-level and aggregate-level analysis, you can run the following script:  
 
@@ -132,7 +132,7 @@ We have created a fork for the example project here: https://github.com/Pascal-J
 2. Clone the target project to the benchmarks directory and checkout the branch you want to run on.  
 
     ```bash
-    cd ../nullness-benchmarks
+    cd benchmarks
     git clone git@github.com:Pascal-Joos/jcommander.git 
     cd jcommander 
     git checkout 3-lts

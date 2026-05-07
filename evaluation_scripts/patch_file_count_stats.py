@@ -13,8 +13,8 @@ import subprocess
 from collections import Counter, defaultdict
 
 # ── Config ─────────────────────────────────────────────────────────────────
-LOG_ROOT        = os.path.expanduser("~/nullrepair_log_files/logs")
-BENCHMARK_ROOT  = os.path.expanduser("~/nullness-benchmarks")
+LOG_ROOT        = os.path.expanduser("~/NullRepairBaseline/evaluation_data/logs")
+BENCHMARK_ROOT  = os.path.expanduser("~/NullRepairBaseline/benchmarks")
 
 APPROACHES = {
     "advanced":       "agentic-advanced-2-evaluation-run-gpt5.1",
