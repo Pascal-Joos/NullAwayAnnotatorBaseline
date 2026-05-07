@@ -1,0 +1,562 @@
+====================
+Type='DEREFERENCE_NULLABLE', message='dereferenced expression resource is @Nullable'
+/home/vscode/nullness-benchmarks/glide/library/src/main/java/com/bumptech/glide/load/engine/EngineJob.java:243
+        resource.recycle();
+Log:
+08:13:22.607 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.commitChanges
+Patch did not reduce errors was 63, now is: 63, resetting.
+08:13:22.669 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+==============================
+08:13:22.670 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.COUNT = 2
+08:13:22.670 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.PROMPTS SIZE = 2
+08:13:22.670 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT TOKENS USAGE: Token usage - Uncached Prompt: 0, Cached Prompt: 0, Completion: 0, Total: 0
+08:13:22.670 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+ChatGPT usage reset
+08:13:22.670 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+37 : TOP LEVEL CALL TO FIX ERROR: Type='DEREFERENCE_NULLABLE', message='dereferenced expression resource is @Nullable'
+/home/vscode/nullness-benchmarks/glide/library/src/main/java/com/bumptech/glide/load/engine/EngineJob.java:243
+        resource.recycle();
+08:13:27.030 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.fix
+Fixing error: Type='DEREFERENCE_NULLABLE', message='dereferenced expression resource is @Nullable'
+/home/vscode/nullness-benchmarks/glide/library/src/main/java/com/bumptech/glide/load/engine/EngineJob.java:243
+        resource.recycle();
+08:13:27.030 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.resolveDereferenceError
+Resolving dereference error: Type='DEREFERENCE_NULLABLE', message='dereferenced expression resource is @Nullable'
+/home/vscode/nullness-benchmarks/glide/library/src/main/java/com/bumptech/glide/load/engine/EngineJob.java:243
+        resource.recycle();
+08:13:27.030 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.resolveDereferenceError
+Checking nullability possibility at error point
+08:13:27.040 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.checkNullabilityPossibilityAtErrorPoint
+Asking if the expression can be null at error point point
+08:13:27.041 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Asking ChatGPT:
+Determine if the expression "resource" at line "resource.recycle();" can possibly be null in the method below.
+
+**Method:**
+@SuppressWarnings({
+    "WeakerAccess",
+    "PMD.AvoidInstantiatingObjectsInLoops",
+    "PMD.AccessorMethodGeneration"
+  })
+  @Synthetic
+  void notifyCallbacksOfResult() {
+    ResourceCallbacksAndExecutors copy;
+    Key localKey;
+    EngineResource<?> localResource;
+    synchronized (this) {
+      stateVerifier.throwIfRecycled();
+      if (isCancelled) {
+        // TODO: Seems like we might as well put this in the memory cache instead of just recycling
+        // it since we've gotten this far...
+        resource.recycle();
+        release();
+        return;
+      } else if (cbs.isEmpty()) {
+        throw new IllegalStateException("Received a resource without any callbacks to notify");
+      } else if (hasResource) {
+        throw new IllegalStateException("Already have resource");
+      }
+      engineResource = engineResourceFactory.build(resource, isCacheable, key, resourceListener);
+      // Hold on to resource for duration of our callbacks below so we don't recycle it in the
+      // middle of notifying if it synchronously released by one of the callbacks. Acquire it under
+      // a lock here so that any newly added callback that executes before the next locked section
+      // below can't recycle the resource before we call the callbacks.
+      hasResource = true;
+      copy = cbs.copy();
+      incrementPendingCallbacks(copy.size() + 1);
+
+      localKey = key;
+      localResource = engineResource;
+    }
+
+    engineJobListener.onEngineJobComplete(this, localKey, localResource);
+
+    for (final ResourceCallbackAndExecutor entry : copy) {
+      entry.executor.execute(new CallResourceReady(entry.cb));
+    }
+    decrementPendingCallbacks();
+}
+
+### Analysis Requirements:
+- Examine all code paths leading to the expression
+- Consider variable assignments, method return values, and control flow
+- Look for null checks, initializations, and guarantees from prior operations
+- Consider the semantics and contracts of called methods
+
+### Response Format:
+
+**If the expression CAN be null:**
+```xml
+<response>
+    <reason><![CDATA[YOUR REASON]]></reason>
+    <value>YES</value>
+</response>
+```
+
+**If the expression CANNOT be null:**
+```xml
+<response>
+    <reason><![CDATA[YOUR REASON]]></reason>
+    <value>NO</value>
+</response>
+```
+
+**If you need more information to make a determination:**
+```xml
+<response>
+    <reason><![CDATA[YOUR REASON]]></reason>
+    <value>UNKNOWN</value>
+    <!-- Include <requests> only if additional information is needed -->
+    <requests>
+        <request><![CDATA[YOUR REQUEST 1]]></request>
+        <request><![CDATA[YOUR REQUEST 2]]></request>
+    </requests>
+</response>
+```
+08:13:27.041 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Retrieving response from cache
+08:13:27.041 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.tryCreate
+Trying to create Response:
+```xml
+<response>
+    <reason><![CDATA[
+Within this method, `resource` is never assigned, checked for null, or modified; it is only used:
+
+- In the `isCancelled` branch: `resource.recycle();`
+- When building `engineResource`: `engineResourceFactory.build(resource, ...)`
+
+Whether `resource` can be null at `resource.recycle();` depends entirely on how the field/variable `resource` is initialized and used elsewhere in the class and on the calling contract of `notifyCallbacksOfResult()`.
+
+From the snippet alone, there is no explicit guarantee:
+- No prior null-check on `resource` in this method.
+- No assignment to `resource` in this method.
+- No assertion or contract in the method body that would prevent `resource` from being null when `isCancelled` is true.
+- The call `engineResourceFactory.build(resource, ...)` also does not establish non-nullness for the earlier `resource.recycle()` call; that call is in a different branch and may not execute if `isCancelled` is false.
+
+Therefore, based solely on this method’s body, it is not possible to prove that `resource` is always non-null when `resource.recycle()` is invoked. That guarantee, if it exists, must come from class invariants or from the lifecycle of the enclosing object (e.g., `resource` is always set by some `onResourceReady(...)` before `notifyCallbacksOfResult()` is ever invoked, and never cleared).
+
+Since that information is not provided, we cannot conclusively say whether `resource` is or is not null at that line.
+    ]]></reason>
+    <value>UNKNOWN</value>
+    <requests>
+        <request><![CDATA[Provide the declaration of the field/variable `resource` (its type, where it is initialized, and any assignments).]]></request>
+        <request><![CDATA[Provide the class and method(s) responsible for setting `resource` and for calling `notifyCallbacksOfResult()`, including any documented invariants or comments about `resource`'s lifecycle.]]></request>
+    </requests>
+</response>
+```
+08:13:27.042 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Creating Response:
+```xml
+<response>
+    <reason><![CDATA[
+Within this method, `resource` is never assigned, checked for null, or modified; it is only used:
+
+- In the `isCancelled` branch: `resource.recycle();`
+- When building `engineResource`: `engineResourceFactory.build(resource, ...)`
+
+Whether `resource` can be null at `resource.recycle();` depends entirely on how the field/variable `resource` is initialized and used elsewhere in the class and on the calling contract of `notifyCallbacksOfResult()`.
+
+From the snippet alone, there is no explicit guarantee:
+- No prior null-check on `resource` in this method.
+- No assignment to `resource` in this method.
+- No assertion or contract in the method body that would prevent `resource` from being null when `isCancelled` is true.
+- The call `engineResourceFactory.build(resource, ...)` also does not establish non-nullness for the earlier `resource.recycle()` call; that call is in a different branch and may not execute if `isCancelled` is false.
+
+Therefore, based solely on this method’s body, it is not possible to prove that `resource` is always non-null when `resource.recycle()` is invoked. That guarantee, if it exists, must come from class invariants or from the lifecycle of the enclosing object (e.g., `resource` is always set by some `onResourceReady(...)` before `notifyCallbacksOfResult()` is ever invoked, and never cleared).
+
+Since that information is not provided, we cannot conclusively say whether `resource` is or is not null at that line.
+    ]]></reason>
+    <value>UNKNOWN</value>
+    <requests>
+        <request><![CDATA[Provide the declaration of the field/variable `resource` (its type, where it is initialized, and any assignments).]]></request>
+        <request><![CDATA[Provide the class and method(s) responsible for setting `resource` and for calling `notifyCallbacksOfResult()`, including any documented invariants or comments about `resource`'s lifecycle.]]></request>
+    </requests>
+</response>
+```
+08:13:27.044 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Response created:
+Unknown: Within this method, `resource` is never assigned, checked for null, or modified; it is only used:
+
+- In the `isCancelled` branch: `resource.recycle();`
+- When building `engineResource`: `engineResourceFactory.build(resource, ...)`
+
+Whether `resource` can be null at `resource.recycle();` depends entirely on how the field/variable `resource` is initialized and used elsewhere in the class and on the calling contract of `notifyCallbacksOfResult()`.
+
+From the snippet alone, there is no explicit guarantee:
+- No prior null-check on `resource` in this method.
+- No assignment to `resource` in this method.
+- No assertion or contract in the method body that would prevent `resource` from being null when `isCancelled` is true.
+- The call `engineResourceFactory.build(resource, ...)` also does not establish non-nullness for the earlier `resource.recycle()` call; that call is in a different branch and may not execute if `isCancelled` is false.
+
+Therefore, based solely on this method’s body, it is not possible to prove that `resource` is always non-null when `resource.recycle()` is invoked. That guarantee, if it exists, must come from class invariants or from the lifecycle of the enclosing object (e.g., `resource` is always set by some `onResourceReady(...)` before `notifyCallbacksOfResult()` is ever invoked, and never cleared).
+
+Since that information is not provided, we cannot conclusively say whether `resource` is or is not null at that line.
+08:13:27.055 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.investigateFieldNullability
+Investigating field nullability.
+08:13:27.055 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.investigateFieldNullability
+Checking if there is any method initializing field: resource
+08:13:27.065 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.getTriggeredErrorsFromLocation
+Impact not found, re-evaluating the location.
+08:13:31.314 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.resolveFieldNullabilityError
+Trying to fix errors for making the field nullable
+08:13:31.314 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.fixErrorByRegions
+Fixing error by regions.
+08:13:31.315 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.getTriggeredErrorsFromLocation
+Impact not found, re-evaluating the location.
+08:13:36.114 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.fixErrorByRegions
+Safe regions: 4 - Unsafe regions: 2
+08:13:36.114 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.fixDereferenceErrorBySafeRegions
+Attempting to fix dereference error by using safe regions
+08:13:36.147 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.fixDereferenceErrorBySafeRegions
+Asking if the error can be fixed by using safe regions
+08:13:36.148 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Asking ChatGPT:
+Resolve a NullAway warning by learning from safe usage patterns in the codebase.
+
+**Error:** At line         resource.recycle();, the dereferenced expression `resource` is @Nullable and can cause a NullPointerException.
+
+**Method with error:**
+@SuppressWarnings({
+    "WeakerAccess",
+    "PMD.AvoidInstantiatingObjectsInLoops",
+    "PMD.AccessorMethodGeneration"
+  })
+  @Synthetic
+  void notifyCallbacksOfResult() {
+    ResourceCallbacksAndExecutors copy;
+    Key localKey;
+    EngineResource<?> localResource;
+    synchronized (this) {
+      stateVerifier.throwIfRecycled();
+      if (isCancelled) {
+        // TODO: Seems like we might as well put this in the memory cache instead of just recycling
+        // it since we've gotten this far...
+        resource.recycle();
+        release();
+        return;
+      } else if (cbs.isEmpty()) {
+        throw new IllegalStateException("Received a resource without any callbacks to notify");
+      } else if (hasResource) {
+        throw new IllegalStateException("Already have resource");
+      }
+      engineResource = engineResourceFactory.build(resource, isCacheable, key, resourceListener);
+      // Hold on to resource for duration of our callbacks below so we don't recycle it in the
+      // middle of notifying if it synchronously released by one of the callbacks. Acquire it under
+      // a lock here so that any newly added callback that executes before the next locked section
+      // below can't recycle the resource before we call the callbacks.
+      hasResource = true;
+      copy = cbs.copy();
+      incrementPendingCallbacks(copy.size() + 1);
+
+      localKey = key;
+      localResource = engineResource;
+    }
+
+    engineJobListener.onEngineJobComplete(this, localKey, localResource);
+
+    for (final ResourceCallbackAndExecutor entry : copy) {
+      entry.executor.execute(new CallResourceReady(entry.cb));
+    }
+    decrementPendingCallbacks();
+}
+
+**Safe usage examples from the codebase:**
+The examples below show where the same dereferenced expression is used safely without causing NullPointerExceptions:
+@Initializer
+  @Override
+  public void onResourceReady(
+      Resource<R> resource,
+      @Nullable DataSource dataSource,
+      boolean isLoadedFromAlternateCacheKey) {
+    synchronized (this) {
+      this.resource = resource;
+      this.dataSource = dataSource;
+      this.isLoadedFromAlternateCacheKey = isLoadedFromAlternateCacheKey;
+    }
+    notifyCallbacksOfResult();
+}
+@VisibleForTesting
+  EngineJob(
+      GlideExecutor diskCacheExecutor,
+      GlideExecutor sourceExecutor,
+      GlideExecutor sourceUnlimitedExecutor,
+      GlideExecutor animationExecutor,
+      EngineJobListener engineJobListener,
+      ResourceListener resourceListener,
+      Pools.Pool<EngineJob<?>> pool,
+      EngineResourceFactory engineResourceFactory) {
+    this.diskCacheExecutor = diskCacheExecutor;
+    this.sourceExecutor = sourceExecutor;
+    this.sourceUnlimitedExecutor = sourceUnlimitedExecutor;
+    this.animationExecutor = animationExecutor;
+    this.engineJobListener = engineJobListener;
+    this.resourceListener = resourceListener;
+    this.pool = pool;
+    this.engineResourceFactory = engineResourceFactory;
+}
+EngineJob(
+      GlideExecutor diskCacheExecutor,
+      GlideExecutor sourceExecutor,
+      GlideExecutor sourceUnlimitedExecutor,
+      GlideExecutor animationExecutor,
+      EngineJobListener engineJobListener,
+      ResourceListener resourceListener,
+      Pools.Pool<EngineJob<?>> pool) {
+    this(
+        diskCacheExecutor,
+        sourceExecutor,
+        sourceUnlimitedExecutor,
+        animationExecutor,
+        engineJobListener,
+        resourceListener,
+        pool,
+        DEFAULT_FACTORY);
+}
+
+### Task:
+Analyze the safe usage patterns in the examples above and apply the same pattern to fix the error in the original method. The examples demonstrate how the codebase typically handles this nullable expression safely.
+
+### Requirements:
+- Use the same null-handling pattern shown in the examples if exists
+- Maintain consistency with the existing codebase style
+- Do not import any additional libraries or classes
+- Do not add Java comments, but also do not remove any preexisting comments.
+- Only modify relevant lines as required
+- Do not address any other issues
+- Return only the modified method
+
+
+Please only provide the fixed code snippet in XML format. I just need the XML response, no other information is needed. If you can provide the fixed code snippet, please provide it in the following format and place the code snippet in the <code> tag within a ```java ... ``` block. Your response should only be the xml format below, no additional text.
+
+### Response Format:
+
+**Provide a meaningful fix:**
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  Your fixed code snippet here, JUST THE METHOD.
+  ```
+    ]]>
+  </code>
+</response>
+
+08:13:36.148 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Retrieving response from cache
+08:13:36.148 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.tryCreate
+Trying to create Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  @SuppressWarnings({
+    "WeakerAccess",
+    "PMD.AvoidInstantiatingObjectsInLoops",
+    "PMD.AccessorMethodGeneration"
+  })
+  @Synthetic
+  void notifyCallbacksOfResult() {
+    ResourceCallbacksAndExecutors copy;
+    Key localKey;
+    EngineResource<?> localResource;
+    Resource<?> localRawResource;
+    synchronized (this) {
+      stateVerifier.throwIfRecycled();
+      localRawResource = resource;
+      if (isCancelled) {
+        // TODO: Seems like we might as well put this in the memory cache instead of just recycling
+        // it since we've gotten this far...
+        if (localRawResource != null) {
+          localRawResource.recycle();
+        }
+        release();
+        return;
+      } else if (cbs.isEmpty()) {
+        throw new IllegalStateException("Received a resource without any callbacks to notify");
+      } else if (hasResource) {
+        throw new IllegalStateException("Already have resource");
+      }
+      engineResource = engineResourceFactory.build(localRawResource, isCacheable, key, resourceListener);
+      // Hold on to resource for duration of our callbacks below so we don't recycle it in the
+      // middle of notifying if it synchronously released by one of the callbacks. Acquire it under
+      // a lock here so that any newly added callback that executes before the next locked section
+      // below can't recycle the resource before we call the callbacks.
+      hasResource = true;
+      copy = cbs.copy();
+      incrementPendingCallbacks(copy.size() + 1);
+
+      localKey = key;
+      localResource = engineResource;
+    }
+
+    engineJobListener.onEngineJobComplete(this, localKey, localResource);
+
+    for (final ResourceCallbackAndExecutor entry : copy) {
+      entry.executor.execute(new CallResourceReady(entry.cb));
+    }
+    decrementPendingCallbacks();
+  }
+  ```
+    ]]>
+  </code>
+</response>
+08:13:36.150 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Creating Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  @SuppressWarnings({
+    "WeakerAccess",
+    "PMD.AvoidInstantiatingObjectsInLoops",
+    "PMD.AccessorMethodGeneration"
+  })
+  @Synthetic
+  void notifyCallbacksOfResult() {
+    ResourceCallbacksAndExecutors copy;
+    Key localKey;
+    EngineResource<?> localResource;
+    Resource<?> localRawResource;
+    synchronized (this) {
+      stateVerifier.throwIfRecycled();
+      localRawResource = resource;
+      if (isCancelled) {
+        // TODO: Seems like we might as well put this in the memory cache instead of just recycling
+        // it since we've gotten this far...
+        if (localRawResource != null) {
+          localRawResource.recycle();
+        }
+        release();
+        return;
+      } else if (cbs.isEmpty()) {
+        throw new IllegalStateException("Received a resource without any callbacks to notify");
+      } else if (hasResource) {
+        throw new IllegalStateException("Already have resource");
+      }
+      engineResource = engineResourceFactory.build(localRawResource, isCacheable, key, resourceListener);
+      // Hold on to resource for duration of our callbacks below so we don't recycle it in the
+      // middle of notifying if it synchronously released by one of the callbacks. Acquire it under
+      // a lock here so that any newly added callback that executes before the next locked section
+      // below can't recycle the resource before we call the callbacks.
+      hasResource = true;
+      copy = cbs.copy();
+      incrementPendingCallbacks(copy.size() + 1);
+
+      localKey = key;
+      localResource = engineResource;
+    }
+
+    engineJobListener.onEngineJobComplete(this, localKey, localResource);
+
+    for (final ResourceCallbackAndExecutor entry : copy) {
+      entry.executor.execute(new CallResourceReady(entry.cb));
+    }
+    decrementPendingCallbacks();
+  }
+  ```
+    ]]>
+  </code>
+</response>
+08:13:36.151 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Response created:
+@SuppressWarnings({
+    "WeakerAccess",
+    "PMD.AvoidInstantiatingObjectsInLoops",
+    "PMD.AccessorMethodGeneration"
+  })
+  @Synthetic
+  void notifyCallbacksOfResult() {
+    ResourceCallbacksAndExecutors copy;
+    Key localKey;
+    EngineResource<?> localResource;
+    Resource<?> localRawResource;
+    synchronized (this) {
+      stateVerifier.throwIfRecycled();
+      localRawResource = resource;
+      if (isCancelled) {
+        // TODO: Seems like we might as well put this in the memory cache instead of just recycling
+        // it since we've gotten this far...
+        if (localRawResource != null) {
+          localRawResource.recycle();
+        }
+        release();
+        return;
+      } else if (cbs.isEmpty()) {
+        throw new IllegalStateException("Received a resource without any callbacks to notify");
+      } else if (hasResource) {
+        throw new IllegalStateException("Already have resource");
+      }
+      engineResource = engineResourceFactory.build(localRawResource, isCacheable, key, resourceListener);
+      // Hold on to resource for duration of our callbacks below so we don't recycle it in the
+      // middle of notifying if it synchronously released by one of the callbacks. Acquire it under
+      // a lock here so that any newly added callback that executes before the next locked section
+      // below can't recycle the resource before we call the callbacks.
+      hasResource = true;
+      copy = cbs.copy();
+      incrementPendingCallbacks(copy.size() + 1);
+
+      localKey = key;
+      localResource = engineResource;
+    }
+
+    engineJobListener.onEngineJobComplete(this, localKey, localResource);
+
+    for (final ResourceCallbackAndExecutor entry : copy) {
+      entry.executor.execute(new CallResourceReady(entry.cb));
+    }
+    decrementPendingCallbacks();
+  }
+08:13:36.151 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.fixDereferenceErrorBySafeRegions
+Fixing the error by using safe regions with code:
+@SuppressWarnings({
+    "WeakerAccess",
+    "PMD.AvoidInstantiatingObjectsInLoops",
+    "PMD.AccessorMethodGeneration"
+  })
+  @Synthetic
+  void notifyCallbacksOfResult() {
+    ResourceCallbacksAndExecutors copy;
+    Key localKey;
+    EngineResource<?> localResource;
+    Resource<?> localRawResource;
+    synchronized (this) {
+      stateVerifier.throwIfRecycled();
+      localRawResource = resource;
+      if (isCancelled) {
+        // TODO: Seems like we might as well put this in the memory cache instead of just recycling
+        // it since we've gotten this far...
+        if (localRawResource != null) {
+          localRawResource.recycle();
+        }
+        release();
+        return;
+      } else if (cbs.isEmpty()) {
+        throw new IllegalStateException("Received a resource without any callbacks to notify");
+      } else if (hasResource) {
+        throw new IllegalStateException("Already have resource");
+      }
+      engineResource = engineResourceFactory.build(localRawResource, isCacheable, key, resourceListener);
+      // Hold on to resource for duration of our callbacks below so we don't recycle it in the
+      // middle of notifying if it synchronously released by one of the callbacks. Acquire it under
+      // a lock here so that any newly added callback that executes before the next locked section
+      // below can't recycle the resource before we call the callbacks.
+      hasResource = true;
+      copy = cbs.copy();
+      incrementPendingCallbacks(copy.size() + 1);
+
+      localKey = key;
+      localResource = engineResource;
+    }
+
+    engineJobListener.onEngineJobComplete(this, localKey, localResource);
+
+    for (final ResourceCallbackAndExecutor entry : copy) {
+      entry.executor.execute(new CallResourceReady(entry.cb));
+    }
+    decrementPendingCallbacks();
+  }
+08:13:36.151 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.fixErrorByRegions
+Successfully generated a fix for the error.

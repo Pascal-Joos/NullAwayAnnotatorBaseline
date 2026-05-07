@@ -1,0 +1,653 @@
+====================
+Type='DEREFERENCE_NULLABLE', message='dereferenced expression currentIf is @Nullable'
+/home/vscode/nullness-benchmarks/jadx/jadx-core/src/main/java/jadx/core/dex/visitors/regions/IfMakerHelper.java:131
+		BlockNode curThen = currentIf.getThenBlock();
+Log:
+12:17:34.188 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.commitChanges
+Patch reduced errors from 86 to 85, committing.
+12:17:34.529 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+==============================
+12:17:34.529 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.COUNT = 2
+12:17:34.529 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.PROMPTS SIZE = 2
+12:17:34.529 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT TOKENS USAGE: Token usage - Uncached Prompt: 0, Cached Prompt: 0, Completion: 0, Total: 0
+12:17:34.529 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+ChatGPT usage reset
+12:17:34.529 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+86 : TOP LEVEL CALL TO FIX ERROR: Type='DEREFERENCE_NULLABLE', message='dereferenced expression currentIf is @Nullable'
+/home/vscode/nullness-benchmarks/jadx/jadx-core/src/main/java/jadx/core/dex/visitors/regions/IfMakerHelper.java:131
+		BlockNode curThen = currentIf.getThenBlock();
+12:17:43.558 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.fix
+Fixing error: Type='DEREFERENCE_NULLABLE', message='dereferenced expression currentIf is @Nullable'
+/home/vscode/nullness-benchmarks/jadx/jadx-core/src/main/java/jadx/core/dex/visitors/regions/IfMakerHelper.java:131
+		BlockNode curThen = currentIf.getThenBlock();
+12:17:43.558 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.resolveDereferenceError
+Resolving dereference error: Type='DEREFERENCE_NULLABLE', message='dereferenced expression currentIf is @Nullable'
+/home/vscode/nullness-benchmarks/jadx/jadx-core/src/main/java/jadx/core/dex/visitors/regions/IfMakerHelper.java:131
+		BlockNode curThen = currentIf.getThenBlock();
+12:17:43.558 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.resolveDereferenceError
+Checking nullability possibility at error point
+12:17:43.569 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.checkNullabilityPossibilityAtErrorPoint
+Asking if the expression can be null at error point point
+12:17:43.569 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Asking ChatGPT:
+Determine if the expression "currentIf" at line "BlockNode curThen = currentIf.getThenBlock();" can possibly be null in the method below.
+
+**Method:**
+@Nullable
+	static IfInfo mergeNestedIfNodes(@Nullable IfInfo currentIf) {
+		BlockNode curThen = currentIf.getThenBlock();
+		BlockNode curElse = currentIf.getElseBlock();
+		if (curThen == curElse) {
+			return null;
+		}
+		if (BlockUtils.isFollowBackEdge(curThen)
+				|| BlockUtils.isFollowBackEdge(curElse)) {
+			return null;
+		}
+		boolean followThenBranch;
+		IfInfo nextIf = getNextIf(currentIf, curThen);
+		if (nextIf != null) {
+			followThenBranch = true;
+		} else {
+			nextIf = getNextIf(currentIf, curElse);
+			if (nextIf != null) {
+				followThenBranch = false;
+			} else {
+				return null;
+			}
+		}
+
+		boolean assignInlineNeeded = !nextIf.getForceInlineInsns().isEmpty();
+		if (assignInlineNeeded) {
+			for (BlockNode mergedBlock : currentIf.getMergedBlocks()) {
+				if (mergedBlock.contains(AFlag.LOOP_START)) {
+					// don't inline assigns into loop condition
+					return currentIf;
+				}
+			}
+		}
+
+		if (isInversionNeeded(currentIf, nextIf)) {
+			// invert current node for match pattern
+			nextIf = IfInfo.invert(nextIf);
+		}
+		boolean thenPathSame = isEqualPaths(curThen, nextIf.getThenBlock());
+		boolean elsePathSame = isEqualPaths(curElse, nextIf.getElseBlock());
+		if (!thenPathSame && !elsePathSame) {
+			// complex condition, run additional checks
+			if (checkConditionBranches(curThen, curElse)
+					|| checkConditionBranches(curElse, curThen)) {
+				return null;
+			}
+			BlockNode otherBranchBlock = followThenBranch ? curElse : curThen;
+			otherBranchBlock = BlockUtils.followEmptyPath(otherBranchBlock);
+			if (!isPathExists(nextIf.getFirstIfBlock(), otherBranchBlock)) {
+				return checkForTernaryInCondition(currentIf);
+			}
+
+			// this is nested conditions with different mode (i.e (a && b) || c),
+			// search next condition for merge, get null if failed
+			IfInfo tmpIf = mergeNestedIfNodes(nextIf);
+			if (tmpIf != null) {
+				nextIf = tmpIf;
+				if (isInversionNeeded(currentIf, nextIf)) {
+					nextIf = IfInfo.invert(nextIf);
+				}
+				if (!canMerge(currentIf, nextIf, followThenBranch)) {
+					return currentIf;
+				}
+			} else {
+				return currentIf;
+			}
+		} else {
+			if (assignInlineNeeded) {
+				boolean sameOuts = (thenPathSame && !followThenBranch) || (elsePathSame && followThenBranch);
+				if (!sameOuts) {
+					// don't inline assigns inside simple condition
+					currentIf.resetForceInlineInsns();
+					return currentIf;
+				}
+			}
+		}
+
+		IfInfo result = mergeIfInfo(currentIf, nextIf, followThenBranch);
+		// search next nested if block
+		return searchNestedIf(result);
+}
+
+### Analysis Requirements:
+- Examine all code paths leading to the expression
+- Consider variable assignments, method return values, and control flow
+- Look for null checks, initializations, and guarantees from prior operations
+- Consider the semantics and contracts of called methods
+
+### Response Format:
+
+**If the expression CAN be null:**
+```xml
+<response>
+    <reason><![CDATA[YOUR REASON]]></reason>
+    <value>YES</value>
+</response>
+```
+
+**If the expression CANNOT be null:**
+```xml
+<response>
+    <reason><![CDATA[YOUR REASON]]></reason>
+    <value>NO</value>
+</response>
+```
+
+**If you need more information to make a determination:**
+```xml
+<response>
+    <reason><![CDATA[YOUR REASON]]></reason>
+    <value>UNKNOWN</value>
+    <!-- Include <requests> only if additional information is needed -->
+    <requests>
+        <request><![CDATA[YOUR REQUEST 1]]></request>
+        <request><![CDATA[YOUR REQUEST 2]]></request>
+    </requests>
+</response>
+```
+12:17:43.569 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Retrieving response from cache
+12:17:43.569 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.tryCreate
+Trying to create Response:
+```xml
+<response>
+    <reason><![CDATA[
+From the provided method body alone, there is no explicit null-check on the parameter `currentIf` before the line:
+
+    BlockNode curThen = currentIf.getThenBlock();
+
+Therefore, in pure Java semantics:
+
+- If `currentIf` is allowed to be `null` when `mergeNestedIfNodes` is called, then `currentIf` can indeed be null at that line, and a `NullPointerException` would occur before `getThenBlock()` is ever invoked.
+- The rest of the method (uses of `currentIf.getElseBlock()`, `currentIf.getMergedBlocks()`, etc.) likewise assume a non-null `currentIf`, but contain no defensive null checks.
+
+Whether `currentIf` can actually be `null` in practice depends entirely on external information not shown here:
+
+1. The contract of `mergeNestedIfNodes(IfInfo currentIf)`:  
+   - If callers are documented/guaranteed to pass only non-null `IfInfo` instances, then logically `currentIf` cannot be null.
+   - If there is any path where callers might pass `null` (or `currentIf` might originate from a method that can return `null` without being checked), then null is possible.
+
+2. The contract of the `IfInfo` class and surrounding analysis framework (likely from a decompiler or CFG analysis library):  
+   - It is common in such frameworks that these "info" objects are created and passed around under strong invariants, such as "if this method is called, there is always a valid `IfInfo`."  
+   - But this guarantee is not inferable from this snippet; it must come from documentation or broader code context.
+
+3. There are no preceding assignments or checks on `currentIf` inside this method that could influence its nullability. The only assignment is via the method parameter.
+
+Because we have no evidence inside this method that `currentIf` is checked or guaranteed non-null, and no visibility into the callers or formal specification of `mergeNestedIfNodes`, we cannot prove that `currentIf` is always non-null, nor can we prove it can definitely be null. The answer therefore depends on external contracts not included in the snippet.
+    ]]></reason>
+    <value>UNKNOWN</value>
+    <requests>
+        <request><![CDATA[
+Show the call sites of mergeNestedIfNodes(IfInfo currentIf), or describe the documented contract: is currentIf guaranteed to be non-null whenever this method is invoked?
+        ]]></request>
+        <request><![CDATA[
+Provide the class or interface definition (or relevant documentation) for IfInfo, especially any factory or getter methods that return it, to see if they can return null.
+        ]]></request>
+    </requests>
+</response>
+```
+12:17:43.570 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Creating Response:
+```xml
+<response>
+    <reason><![CDATA[
+From the provided method body alone, there is no explicit null-check on the parameter `currentIf` before the line:
+
+    BlockNode curThen = currentIf.getThenBlock();
+
+Therefore, in pure Java semantics:
+
+- If `currentIf` is allowed to be `null` when `mergeNestedIfNodes` is called, then `currentIf` can indeed be null at that line, and a `NullPointerException` would occur before `getThenBlock()` is ever invoked.
+- The rest of the method (uses of `currentIf.getElseBlock()`, `currentIf.getMergedBlocks()`, etc.) likewise assume a non-null `currentIf`, but contain no defensive null checks.
+
+Whether `currentIf` can actually be `null` in practice depends entirely on external information not shown here:
+
+1. The contract of `mergeNestedIfNodes(IfInfo currentIf)`:  
+   - If callers are documented/guaranteed to pass only non-null `IfInfo` instances, then logically `currentIf` cannot be null.
+   - If there is any path where callers might pass `null` (or `currentIf` might originate from a method that can return `null` without being checked), then null is possible.
+
+2. The contract of the `IfInfo` class and surrounding analysis framework (likely from a decompiler or CFG analysis library):  
+   - It is common in such frameworks that these "info" objects are created and passed around under strong invariants, such as "if this method is called, there is always a valid `IfInfo`."  
+   - But this guarantee is not inferable from this snippet; it must come from documentation or broader code context.
+
+3. There are no preceding assignments or checks on `currentIf` inside this method that could influence its nullability. The only assignment is via the method parameter.
+
+Because we have no evidence inside this method that `currentIf` is checked or guaranteed non-null, and no visibility into the callers or formal specification of `mergeNestedIfNodes`, we cannot prove that `currentIf` is always non-null, nor can we prove it can definitely be null. The answer therefore depends on external contracts not included in the snippet.
+    ]]></reason>
+    <value>UNKNOWN</value>
+    <requests>
+        <request><![CDATA[
+Show the call sites of mergeNestedIfNodes(IfInfo currentIf), or describe the documented contract: is currentIf guaranteed to be non-null whenever this method is invoked?
+        ]]></request>
+        <request><![CDATA[
+Provide the class or interface definition (or relevant documentation) for IfInfo, especially any factory or getter methods that return it, to see if they can return null.
+        ]]></request>
+    </requests>
+</response>
+```
+12:17:43.571 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Response created:
+Unknown: From the provided method body alone, there is no explicit null-check on the parameter `currentIf` before the line:
+
+    BlockNode curThen = currentIf.getThenBlock();
+
+Therefore, in pure Java semantics:
+
+- If `currentIf` is allowed to be `null` when `mergeNestedIfNodes` is called, then `currentIf` can indeed be null at that line, and a `NullPointerException` would occur before `getThenBlock()` is ever invoked.
+- The rest of the method (uses of `currentIf.getElseBlock()`, `currentIf.getMergedBlocks()`, etc.) likewise assume a non-null `currentIf`, but contain no defensive null checks.
+
+Whether `currentIf` can actually be `null` in practice depends entirely on external information not shown here:
+
+1. The contract of `mergeNestedIfNodes(IfInfo currentIf)`:  
+   - If callers are documented/guaranteed to pass only non-null `IfInfo` instances, then logically `currentIf` cannot be null.
+   - If there is any path where callers might pass `null` (or `currentIf` might originate from a method that can return `null` without being checked), then null is possible.
+
+2. The contract of the `IfInfo` class and surrounding analysis framework (likely from a decompiler or CFG analysis library):  
+   - It is common in such frameworks that these "info" objects are created and passed around under strong invariants, such as "if this method is called, there is always a valid `IfInfo`."  
+   - But this guarantee is not inferable from this snippet; it must come from documentation or broader code context.
+
+3. There are no preceding assignments or checks on `currentIf` inside this method that could influence its nullability. The only assignment is via the method parameter.
+
+Because we have no evidence inside this method that `currentIf` is checked or guaranteed non-null, and no visibility into the callers or formal specification of `mergeNestedIfNodes`, we cannot prove that `currentIf` is always non-null, nor can we prove it can definitely be null. The answer therefore depends on external contracts not included in the snippet.
+12:17:43.582 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.resolveDereferenceError
+Method is already annotated as nullable. Constructing return null statement.
+12:17:43.592 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Asking ChatGPT:
+Rewrite the method below:
+
+```java
+@Nullable
+	static IfInfo mergeNestedIfNodes(@Nullable IfInfo currentIf) {
+		BlockNode curThen = currentIf.getThenBlock();
+		BlockNode curElse = currentIf.getElseBlock();
+		if (curThen == curElse) {
+			return null;
+		}
+		if (BlockUtils.isFollowBackEdge(curThen)
+				|| BlockUtils.isFollowBackEdge(curElse)) {
+			return null;
+		}
+		boolean followThenBranch;
+		IfInfo nextIf = getNextIf(currentIf, curThen);
+		if (nextIf != null) {
+			followThenBranch = true;
+		} else {
+			nextIf = getNextIf(currentIf, curElse);
+			if (nextIf != null) {
+				followThenBranch = false;
+			} else {
+				return null;
+			}
+		}
+
+		boolean assignInlineNeeded = !nextIf.getForceInlineInsns().isEmpty();
+		if (assignInlineNeeded) {
+			for (BlockNode mergedBlock : currentIf.getMergedBlocks()) {
+				if (mergedBlock.contains(AFlag.LOOP_START)) {
+					// don't inline assigns into loop condition
+					return currentIf;
+				}
+			}
+		}
+
+		if (isInversionNeeded(currentIf, nextIf)) {
+			// invert current node for match pattern
+			nextIf = IfInfo.invert(nextIf);
+		}
+		boolean thenPathSame = isEqualPaths(curThen, nextIf.getThenBlock());
+		boolean elsePathSame = isEqualPaths(curElse, nextIf.getElseBlock());
+		if (!thenPathSame && !elsePathSame) {
+			// complex condition, run additional checks
+			if (checkConditionBranches(curThen, curElse)
+					|| checkConditionBranches(curElse, curThen)) {
+				return null;
+			}
+			BlockNode otherBranchBlock = followThenBranch ? curElse : curThen;
+			otherBranchBlock = BlockUtils.followEmptyPath(otherBranchBlock);
+			if (!isPathExists(nextIf.getFirstIfBlock(), otherBranchBlock)) {
+				return checkForTernaryInCondition(currentIf);
+			}
+
+			// this is nested conditions with different mode (i.e (a && b) || c),
+			// search next condition for merge, get null if failed
+			IfInfo tmpIf = mergeNestedIfNodes(nextIf);
+			if (tmpIf != null) {
+				nextIf = tmpIf;
+				if (isInversionNeeded(currentIf, nextIf)) {
+					nextIf = IfInfo.invert(nextIf);
+				}
+				if (!canMerge(currentIf, nextIf, followThenBranch)) {
+					return currentIf;
+				}
+			} else {
+				return currentIf;
+			}
+		} else {
+			if (assignInlineNeeded) {
+				boolean sameOuts = (thenPathSame && !followThenBranch) || (elsePathSame && followThenBranch);
+				if (!sameOuts) {
+					// don't inline assigns inside simple condition
+					currentIf.resetForceInlineInsns();
+					return currentIf;
+				}
+			}
+		}
+
+		IfInfo result = mergeIfInfo(currentIf, nextIf, followThenBranch);
+		// search next nested if block
+		return searchNestedIf(result);
+}
+```
+
+So that at the line "		BlockNode curThen = currentIf.getThenBlock();", if the dereferenced expression "currentIf" is null, the method returns null.
+
+Rewrite the null check closest to dereference and add the @Nullable annotation on the method declaration. If you can provide a default value (such as Set.of() or any other value depending on the code) for the dereferenced expression or rewrite the code snippet to avoid the error.
+
+### Requirements:
+- Do not import any additional libraries or classes
+- Do not add Java comments, but also do not remove any preexisting comments.
+- Only modify relevant lines as required
+- Do not address any other issues
+- Return only the modified method
+
+
+Please only provide the fixed code snippet in XML format. I just need the XML response, no other information is needed. If you can provide the fixed code snippet, please provide it in the following format and place the code snippet in the <code> tag within a ```java ... ``` block. Your response should only be the xml format below, no additional text.
+
+### Response Format:
+
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  Your fixed code snippet here, JUST THE METHOD.
+  ```
+    ]]>
+  </code>
+</response>
+12:17:43.592 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Retrieving response from cache
+12:17:43.592 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.tryCreate
+Trying to create Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+	@Nullable
+	static IfInfo mergeNestedIfNodes( IfInfo currentIf) {
+		if (currentIf == null) {
+			return null;
+		}
+		BlockNode curThen = currentIf.getThenBlock();
+		BlockNode curElse = currentIf.getElseBlock();
+		if (curThen == curElse) {
+			return null;
+		}
+		if (BlockUtils.isFollowBackEdge(curThen)
+				|| BlockUtils.isFollowBackEdge(curElse)) {
+			return null;
+		}
+		boolean followThenBranch;
+		IfInfo nextIf = getNextIf(currentIf, curThen);
+		if (nextIf != null) {
+			followThenBranch = true;
+		} else {
+			nextIf = getNextIf(currentIf, curElse);
+			if (nextIf != null) {
+				followThenBranch = false;
+			} else {
+				return null;
+			}
+		}
+
+		boolean assignInlineNeeded = !nextIf.getForceInlineInsns().isEmpty();
+		if (assignInlineNeeded) {
+			for (BlockNode mergedBlock : currentIf.getMergedBlocks()) {
+				if (mergedBlock.contains(AFlag.LOOP_START)) {
+					// don't inline assigns into loop condition
+					return currentIf;
+				}
+			}
+		}
+
+		if (isInversionNeeded(currentIf, nextIf)) {
+			// invert current node for match pattern
+			nextIf = IfInfo.invert(nextIf);
+		}
+		boolean thenPathSame = isEqualPaths(curThen, nextIf.getThenBlock());
+		boolean elsePathSame = isEqualPaths(curElse, nextIf.getElseBlock());
+		if (!thenPathSame && !elsePathSame) {
+			// complex condition, run additional checks
+			if (checkConditionBranches(curThen, curElse)
+					|| checkConditionBranches(curElse, curThen)) {
+				return null;
+			}
+			BlockNode otherBranchBlock = followThenBranch ? curElse : curThen;
+			otherBranchBlock = BlockUtils.followEmptyPath(otherBranchBlock);
+			if (!isPathExists(nextIf.getFirstIfBlock(), otherBranchBlock)) {
+				return checkForTernaryInCondition(currentIf);
+			}
+
+			// this is nested conditions with different mode (i.e (a && b) || c),
+			// search next condition for merge, get null if failed
+			IfInfo tmpIf = mergeNestedIfNodes(nextIf);
+			if (tmpIf != null) {
+				nextIf = tmpIf;
+				if (isInversionNeeded(currentIf, nextIf)) {
+					nextIf = IfInfo.invert(nextIf);
+				}
+				if (!canMerge(currentIf, nextIf, followThenBranch)) {
+					return currentIf;
+				}
+			} else {
+				return currentIf;
+			}
+		} else {
+			if (assignInlineNeeded) {
+				boolean sameOuts = (thenPathSame && !followThenBranch) || (elsePathSame && followThenBranch);
+				if (!sameOuts) {
+					// don't inline assigns inside simple condition
+					currentIf.resetForceInlineInsns();
+					return currentIf;
+				}
+			}
+		}
+
+		IfInfo result = mergeIfInfo(currentIf, nextIf, followThenBranch);
+		// search next nested if block
+		return searchNestedIf(result);
+}
+  ```
+    ]]>
+  </code>
+</response>
+12:17:43.595 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Creating Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+	@Nullable
+	static IfInfo mergeNestedIfNodes( IfInfo currentIf) {
+		if (currentIf == null) {
+			return null;
+		}
+		BlockNode curThen = currentIf.getThenBlock();
+		BlockNode curElse = currentIf.getElseBlock();
+		if (curThen == curElse) {
+			return null;
+		}
+		if (BlockUtils.isFollowBackEdge(curThen)
+				|| BlockUtils.isFollowBackEdge(curElse)) {
+			return null;
+		}
+		boolean followThenBranch;
+		IfInfo nextIf = getNextIf(currentIf, curThen);
+		if (nextIf != null) {
+			followThenBranch = true;
+		} else {
+			nextIf = getNextIf(currentIf, curElse);
+			if (nextIf != null) {
+				followThenBranch = false;
+			} else {
+				return null;
+			}
+		}
+
+		boolean assignInlineNeeded = !nextIf.getForceInlineInsns().isEmpty();
+		if (assignInlineNeeded) {
+			for (BlockNode mergedBlock : currentIf.getMergedBlocks()) {
+				if (mergedBlock.contains(AFlag.LOOP_START)) {
+					// don't inline assigns into loop condition
+					return currentIf;
+				}
+			}
+		}
+
+		if (isInversionNeeded(currentIf, nextIf)) {
+			// invert current node for match pattern
+			nextIf = IfInfo.invert(nextIf);
+		}
+		boolean thenPathSame = isEqualPaths(curThen, nextIf.getThenBlock());
+		boolean elsePathSame = isEqualPaths(curElse, nextIf.getElseBlock());
+		if (!thenPathSame && !elsePathSame) {
+			// complex condition, run additional checks
+			if (checkConditionBranches(curThen, curElse)
+					|| checkConditionBranches(curElse, curThen)) {
+				return null;
+			}
+			BlockNode otherBranchBlock = followThenBranch ? curElse : curThen;
+			otherBranchBlock = BlockUtils.followEmptyPath(otherBranchBlock);
+			if (!isPathExists(nextIf.getFirstIfBlock(), otherBranchBlock)) {
+				return checkForTernaryInCondition(currentIf);
+			}
+
+			// this is nested conditions with different mode (i.e (a && b) || c),
+			// search next condition for merge, get null if failed
+			IfInfo tmpIf = mergeNestedIfNodes(nextIf);
+			if (tmpIf != null) {
+				nextIf = tmpIf;
+				if (isInversionNeeded(currentIf, nextIf)) {
+					nextIf = IfInfo.invert(nextIf);
+				}
+				if (!canMerge(currentIf, nextIf, followThenBranch)) {
+					return currentIf;
+				}
+			} else {
+				return currentIf;
+			}
+		} else {
+			if (assignInlineNeeded) {
+				boolean sameOuts = (thenPathSame && !followThenBranch) || (elsePathSame && followThenBranch);
+				if (!sameOuts) {
+					// don't inline assigns inside simple condition
+					currentIf.resetForceInlineInsns();
+					return currentIf;
+				}
+			}
+		}
+
+		IfInfo result = mergeIfInfo(currentIf, nextIf, followThenBranch);
+		// search next nested if block
+		return searchNestedIf(result);
+}
+  ```
+    ]]>
+  </code>
+</response>
+12:17:43.596 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Response created:
+@Nullable
+	static IfInfo mergeNestedIfNodes( IfInfo currentIf) {
+		if (currentIf == null) {
+			return null;
+		}
+		BlockNode curThen = currentIf.getThenBlock();
+		BlockNode curElse = currentIf.getElseBlock();
+		if (curThen == curElse) {
+			return null;
+		}
+		if (BlockUtils.isFollowBackEdge(curThen)
+				|| BlockUtils.isFollowBackEdge(curElse)) {
+			return null;
+		}
+		boolean followThenBranch;
+		IfInfo nextIf = getNextIf(currentIf, curThen);
+		if (nextIf != null) {
+			followThenBranch = true;
+		} else {
+			nextIf = getNextIf(currentIf, curElse);
+			if (nextIf != null) {
+				followThenBranch = false;
+			} else {
+				return null;
+			}
+		}
+
+		boolean assignInlineNeeded = !nextIf.getForceInlineInsns().isEmpty();
+		if (assignInlineNeeded) {
+			for (BlockNode mergedBlock : currentIf.getMergedBlocks()) {
+				if (mergedBlock.contains(AFlag.LOOP_START)) {
+					// don't inline assigns into loop condition
+					return currentIf;
+				}
+			}
+		}
+
+		if (isInversionNeeded(currentIf, nextIf)) {
+			// invert current node for match pattern
+			nextIf = IfInfo.invert(nextIf);
+		}
+		boolean thenPathSame = isEqualPaths(curThen, nextIf.getThenBlock());
+		boolean elsePathSame = isEqualPaths(curElse, nextIf.getElseBlock());
+		if (!thenPathSame && !elsePathSame) {
+			// complex condition, run additional checks
+			if (checkConditionBranches(curThen, curElse)
+					|| checkConditionBranches(curElse, curThen)) {
+				return null;
+			}
+			BlockNode otherBranchBlock = followThenBranch ? curElse : curThen;
+			otherBranchBlock = BlockUtils.followEmptyPath(otherBranchBlock);
+			if (!isPathExists(nextIf.getFirstIfBlock(), otherBranchBlock)) {
+				return checkForTernaryInCondition(currentIf);
+			}
+
+			// this is nested conditions with different mode (i.e (a && b) || c),
+			// search next condition for merge, get null if failed
+			IfInfo tmpIf = mergeNestedIfNodes(nextIf);
+			if (tmpIf != null) {
+				nextIf = tmpIf;
+				if (isInversionNeeded(currentIf, nextIf)) {
+					nextIf = IfInfo.invert(nextIf);
+				}
+				if (!canMerge(currentIf, nextIf, followThenBranch)) {
+					return currentIf;
+				}
+			} else {
+				return currentIf;
+			}
+		} else {
+			if (assignInlineNeeded) {
+				boolean sameOuts = (thenPathSame && !followThenBranch) || (elsePathSame && followThenBranch);
+				if (!sameOuts) {
+					// don't inline assigns inside simple condition
+					currentIf.resetForceInlineInsns();
+					return currentIf;
+				}
+			}
+		}
+
+		IfInfo result = mergeIfInfo(currentIf, nextIf, followThenBranch);
+		// search next nested if block
+		return searchNestedIf(result);
+}
+12:17:43.596 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.fixDereferenceByReturningNullInNullableMethod
+Fixing the error by returning null earlier

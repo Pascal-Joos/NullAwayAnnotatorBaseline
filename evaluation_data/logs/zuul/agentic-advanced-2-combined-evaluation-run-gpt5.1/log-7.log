@@ -1,0 +1,352 @@
+====================
+Type='PASS_NULLABLE', message='passing @Nullable parameter 'key' where @NonNull is required'
+/home/vscode/nullness-benchmarks/zuul/zuul-core/src/main/java/com/netflix/zuul/netty/connectionpool/DefaultClientChannelManager.java:382
+    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(key);
+Log:
+08:32:37.251 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.commitChanges
+Patch reduced errors from 22 to 21, committing.
+08:32:37.325 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+==============================
+08:32:37.325 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.COUNT = 3
+08:32:37.325 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.PROMPTS SIZE = 3
+08:32:37.325 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT TOKENS USAGE: Token usage - Uncached Prompt: 0, Cached Prompt: 0, Completion: 0, Total: 0
+08:32:37.325 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+ChatGPT usage reset
+08:32:37.325 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+7 : TOP LEVEL CALL TO FIX ERROR: Type='PASS_NULLABLE', message='passing @Nullable parameter 'key' where @NonNull is required'
+/home/vscode/nullness-benchmarks/zuul/zuul-core/src/main/java/com/netflix/zuul/netty/connectionpool/DefaultClientChannelManager.java:382
+    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(key);
+08:32:44.547 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.fix
+Fixing error: Type='PASS_NULLABLE', message='passing @Nullable parameter 'key' where @NonNull is required'
+/home/vscode/nullness-benchmarks/zuul/zuul-core/src/main/java/com/netflix/zuul/netty/connectionpool/DefaultClientChannelManager.java:382
+    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(key);
+08:32:44.548 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.AdvancedNullAwayCodeFix.resolveRemainingErrors
+Resolving remaining cast to nonnull
+08:32:44.559 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Asking ChatGPT:
+In the method below, the expression key is not nullable at the point it is used.
+
+```java
+@Override
+  public Promise<PooledConnection> acquire(
+      EventLoop eventLoop,
+      @Nullable Object key,
+      CurrentPassport passport,
+      AtomicReference<DiscoveryResult> selectedServer,
+      AtomicReference<? super InetAddress> selectedHostAddr) {
+
+    if (shuttingDown) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(SHUTTING_DOWN_ERR);
+      return promise;
+    }
+
+    // Choose the next load-balanced server.
+    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(key);
+
+    // (argha-c): Always ensure the selected server is updated, since the call chain relies on this
+    // mutation.
+    selectedServer.set(chosenServer);
+    if (chosenServer == DiscoveryResult.EMPTY) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(
+          new OriginConnectException(
+              "No servers available", OutboundErrorType.NO_AVAILABLE_SERVERS));
+      return promise;
+    }
+
+    // Now get the connection-pool for this server.
+    IConnectionPool pool =
+        perServerPools.computeIfAbsent(
+            chosenServer,
+            s -> {
+              SocketAddress finalServerAddr = pickAddress(chosenServer);
+              final ClientChannelManager clientChannelMgr = this;
+              PooledConnectionFactory pcf =
+                  createPooledConnectionFactory(
+                      chosenServer, clientChannelMgr, closeConnCounter, closeWrtBusyConnCounter);
+
+              // Create a new pool for this server.
+              return createConnectionPool(
+                  chosenServer,
+                  finalServerAddr,
+                  clientConnFactory,
+                  pcf,
+                  connPoolConfig,
+                  clientConfig,
+                  createNewConnCounter,
+                  createConnSucceededCounter,
+                  createConnFailedCounter,
+                  requestConnCounter,
+                  reuseConnCounter,
+                  connTakenFromPoolIsNotOpen,
+                  closeAbovePoolHighWaterMarkCounter,
+                  maxConnsPerHostExceededCounter,
+                  connEstablishTimer,
+                  connsInPool,
+                  connsInUse);
+            });
+
+    return pool.acquire(eventLoop, passport, selectedHostAddr);
+}
+```
+Please rewrite the method so that at the line "    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(key);", at the occurrence of: "key" is replaced with `Nullability.castToNonnull(key)`.
+
+**Important**: If the expression "key" is referenced further times after the targeted line to rewrite:
+Everywhere, where non-null is expected for the expression "key" (e.g., at dereference sites), cast the expression to non-null, to prevent follow-on NullAway errors. 
+However, if you would have to add many casts, prefer casting at definition time or reassigning the expression to a local variable and casting there, if this is possible without breaking the code.
+
+**Example** - Target non-nullable expression `foo`:
+```java
+public void test(){
+    String l = this.foo.getBar();
+    String l2 = this.foo.getFoo(); // this.foo is used again
+}
+```
+
+will be:
+```java
+public void test(){
+    String l = Nullability.castToNonnull(this.foo).getBar();
+    String l2 = Nullability.castToNonnull(this.foo).getFoo(); // also added a cast here
+}
+```
+
+### Requirements:
+- Do not import any additional libraries or classes
+- Do not add Java comments, but also do not remove any preexisting comments.
+- Only modify relevant lines as required
+- Do not address any other issues
+- Return only the modified method wrapped in the XML format shown below.
+
+Please only provide the fixed code snippet in XML format. I just need the XML response, no other information is needed. If you can provide the fixed code snippet, please provide it in the following format and place the code snippet in the <code> tag within a ```java ... ``` block. Your response should only be the xml format below, no additional text.
+
+### Response Format:
+
+**Provide a meaningful fix:**
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  Your fixed code snippet here, JUST THE METHOD.
+  ```
+    ]]>
+  </code>
+</response>
+
+
+08:32:44.559 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Retrieving response from cache
+08:32:44.560 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.tryCreate
+Trying to create Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  @Override
+  public Promise<PooledConnection> acquire(
+      EventLoop eventLoop,
+       Object key,
+      CurrentPassport passport,
+      AtomicReference<DiscoveryResult> selectedServer,
+      AtomicReference<? super InetAddress> selectedHostAddr) {
+
+    if (shuttingDown) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(SHUTTING_DOWN_ERR);
+      return promise;
+    }
+
+    // Choose the next load-balanced server.
+    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(Nullability.castToNonnull(key));
+
+    // (argha-c): Always ensure the selected server is updated, since the call chain relies on this
+    // mutation.
+    selectedServer.set(chosenServer);
+    if (chosenServer == DiscoveryResult.EMPTY) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(
+          new OriginConnectException(
+              "No servers available", OutboundErrorType.NO_AVAILABLE_SERVERS));
+      return promise;
+    }
+
+    // Now get the connection-pool for this server.
+    IConnectionPool pool =
+        perServerPools.computeIfAbsent(
+            chosenServer,
+            s -> {
+              SocketAddress finalServerAddr = pickAddress(chosenServer);
+              final ClientChannelManager clientChannelMgr = this;
+              PooledConnectionFactory pcf =
+                  createPooledConnectionFactory(
+                      chosenServer, clientChannelMgr, closeConnCounter, closeWrtBusyConnCounter);
+
+              // Create a new pool for this server.
+              return createConnectionPool(
+                  chosenServer,
+                  finalServerAddr,
+                  clientConnFactory,
+                  pcf,
+                  connPoolConfig,
+                  clientConfig,
+                  createNewConnCounter,
+                  createConnSucceededCounter,
+                  createConnFailedCounter,
+                  requestConnCounter,
+                  reuseConnCounter,
+                  connTakenFromPoolIsNotOpen,
+                  closeAbovePoolHighWaterMarkCounter,
+                  maxConnsPerHostExceededCounter,
+                  connEstablishTimer,
+                  connsInPool,
+                  connsInUse);
+            });
+
+    return pool.acquire(eventLoop, passport, selectedHostAddr);
+  }
+  ```
+    ]]>
+  </code>
+</response>
+08:32:44.562 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Creating Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  @Override
+  public Promise<PooledConnection> acquire(
+      EventLoop eventLoop,
+       Object key,
+      CurrentPassport passport,
+      AtomicReference<DiscoveryResult> selectedServer,
+      AtomicReference<? super InetAddress> selectedHostAddr) {
+
+    if (shuttingDown) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(SHUTTING_DOWN_ERR);
+      return promise;
+    }
+
+    // Choose the next load-balanced server.
+    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(Nullability.castToNonnull(key));
+
+    // (argha-c): Always ensure the selected server is updated, since the call chain relies on this
+    // mutation.
+    selectedServer.set(chosenServer);
+    if (chosenServer == DiscoveryResult.EMPTY) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(
+          new OriginConnectException(
+              "No servers available", OutboundErrorType.NO_AVAILABLE_SERVERS));
+      return promise;
+    }
+
+    // Now get the connection-pool for this server.
+    IConnectionPool pool =
+        perServerPools.computeIfAbsent(
+            chosenServer,
+            s -> {
+              SocketAddress finalServerAddr = pickAddress(chosenServer);
+              final ClientChannelManager clientChannelMgr = this;
+              PooledConnectionFactory pcf =
+                  createPooledConnectionFactory(
+                      chosenServer, clientChannelMgr, closeConnCounter, closeWrtBusyConnCounter);
+
+              // Create a new pool for this server.
+              return createConnectionPool(
+                  chosenServer,
+                  finalServerAddr,
+                  clientConnFactory,
+                  pcf,
+                  connPoolConfig,
+                  clientConfig,
+                  createNewConnCounter,
+                  createConnSucceededCounter,
+                  createConnFailedCounter,
+                  requestConnCounter,
+                  reuseConnCounter,
+                  connTakenFromPoolIsNotOpen,
+                  closeAbovePoolHighWaterMarkCounter,
+                  maxConnsPerHostExceededCounter,
+                  connEstablishTimer,
+                  connsInPool,
+                  connsInUse);
+            });
+
+    return pool.acquire(eventLoop, passport, selectedHostAddr);
+  }
+  ```
+    ]]>
+  </code>
+</response>
+08:32:44.564 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Response created:
+@Override
+  public Promise<PooledConnection> acquire(
+      EventLoop eventLoop,
+       Object key,
+      CurrentPassport passport,
+      AtomicReference<DiscoveryResult> selectedServer,
+      AtomicReference<? super InetAddress> selectedHostAddr) {
+
+    if (shuttingDown) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(SHUTTING_DOWN_ERR);
+      return promise;
+    }
+
+    // Choose the next load-balanced server.
+    final DiscoveryResult chosenServer = dynamicServerResolver.resolve(Nullability.castToNonnull(key));
+
+    // (argha-c): Always ensure the selected server is updated, since the call chain relies on this
+    // mutation.
+    selectedServer.set(chosenServer);
+    if (chosenServer == DiscoveryResult.EMPTY) {
+      Promise<PooledConnection> promise = eventLoop.newPromise();
+      promise.setFailure(
+          new OriginConnectException(
+              "No servers available", OutboundErrorType.NO_AVAILABLE_SERVERS));
+      return promise;
+    }
+
+    // Now get the connection-pool for this server.
+    IConnectionPool pool =
+        perServerPools.computeIfAbsent(
+            chosenServer,
+            s -> {
+              SocketAddress finalServerAddr = pickAddress(chosenServer);
+              final ClientChannelManager clientChannelMgr = this;
+              PooledConnectionFactory pcf =
+                  createPooledConnectionFactory(
+                      chosenServer, clientChannelMgr, closeConnCounter, closeWrtBusyConnCounter);
+
+              // Create a new pool for this server.
+              return createConnectionPool(
+                  chosenServer,
+                  finalServerAddr,
+                  clientConnFactory,
+                  pcf,
+                  connPoolConfig,
+                  clientConfig,
+                  createNewConnCounter,
+                  createConnSucceededCounter,
+                  createConnFailedCounter,
+                  requestConnCounter,
+                  reuseConnCounter,
+                  connTakenFromPoolIsNotOpen,
+                  closeAbovePoolHighWaterMarkCounter,
+                  maxConnsPerHostExceededCounter,
+                  connEstablishTimer,
+                  connsInPool,
+                  connsInUse);
+            });
+
+    return pool.acquire(eventLoop, passport, selectedHostAddr);
+  }
+08:32:44.564 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.fixDereferenceByRemainingCastToNonnull
+Fixing the error by adding castToNonnull
