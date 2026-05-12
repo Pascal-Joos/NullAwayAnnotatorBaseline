@@ -4,20 +4,53 @@
 
 ### 1.1 Requirements
 
-Docker.  
+The VS Code Dev Container extension with VS Code.  
 Tested with Docker 29.4.1
 
-### 1.2 Installation
+### 1.2 Installation using VS Code Dev Container
 
-Inside the docker container, run the following commands to set up the environment.
+Don't open the VS Code Dev Container before completing the steps 1 to 3.
 
-1. Activate the Python environment by running (if not yet active):  
+1. Clone this repository using ssh and checkout the branch `joos/auto-code-fix-baseline`.
+
+2. Run: ```git submodule update --init --recursive``` to initialize the mini-swe-agent submodule.
+
+3. Run: `bash checkout_benchmarks.sh`.  
+This clones the target projects for the experiment into `benchmarks`.  
+Refer to these folders for the logs of executed runs and for any commits created by NullRepair.
+
+1. Reopen the project in a devcontainer using the VSCode Dev Container extension. All needed dependencies and setup steps are then executed automatically. Wait until the postcreatecommand finishes executing and the terminal is ready to use.
+
+2. Activate the Python environment by running (if not yet active):  
 ```source .venv/bin/activate```
 
-2. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.  
+1. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.  
 This is needed to run NullRepair and the baselines, which use the OpenAI API.  
 For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 4.).  
 ```python3 set_openai_key.py```
+
+### 1.3 Build a Prebuilt Artifact Docker Image (for submission)
+
+For artifact submission, you can build a preconfigured Docker image archive that includes all dependencies, initialized submodules, and freshly checked-out benchmark repositories.
+
+From the repository root:
+
+```bash
+bash create_artifact_image.sh
+```
+
+This creates `nullrepair_artifact_image.tar` (default) in the repository root. The script excludes `.env` from the image build context so API keys are not embedded.
+
+The image is built from the persistent [Dockerfile.artifact](Dockerfile.artifact) in the repository root, and the build context is filtered by [.dockerignore](.dockerignore).
+
+Load and run the image:
+
+```bash
+docker load -i nullrepair_artifact_image.tar
+docker run --rm -it --name nullrepair_artifact nullrepair-issta-artifact:latest bash
+```
+
+Inside the container, the repository is available at `/home/vscode/NullRepairBaseline` and uses the `vscode` user to match the devcontainer environment.
 
 ## 2. Quick Run
 

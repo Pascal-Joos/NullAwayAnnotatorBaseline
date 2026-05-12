@@ -1,0 +1,67 @@
+FROM mcr.microsoft.com/devcontainers/base:ubuntu
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    openjdk-11-jdk-headless \
+    openjdk-17-jdk-headless \
+    openjdk-17-jre \
+    openjdk-17-jdk \
+    android-sdk \
+    wget \
+    curl \
+    xvfb \
+    docker.io \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Android SDK licenses used by the project setup.
+COPY .devcontainer/docker_files/licenses /usr/lib/android-sdk/licenses
+
+RUN chown -R vscode:vscode /usr/lib/android-sdk
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.17.0-openjdk-amd64
+ENV ANDROID_HOME=/usr/lib/android-sdk
+
+# Keep the same code location and user as the devcontainer.
+USER vscode
+WORKDIR /home/vscode
+
+# Build NullAway dependency used by NullRepair.
+RUN git clone https://github.com/Pascal-Joos/NullAway.git /home/vscode/NullAway && \
+    cd /home/vscode/NullAway && \
+    git checkout d0c7d8390964ee5dc95d6bf93ae76b85913b2342 && \
+    echo 'sdk.dir=/usr/lib/android-sdk' > local.properties && \
+    ./gradlew build -x test && \
+    ./gradlew publishToMavenLocal
+
+# Copy without the .devcontainer folder (needed above)
+COPY --chown=vscode:vscode --exclude=.devcontainer . /home/vscode/NullRepairBaseline
+RUN chown -R vscode:vscode /home/vscode/NullRepairBaseline
+
+WORKDIR /home/vscode/NullRepairBaseline
+
+# Build project artifacts and Python environment similarly to devcontainer postCreate.
+RUN ./gradlew :annotator-core:spotlessApply && \
+    ./gradlew build -x test && \
+    ./gradlew publishToMavenLocal && \
+    python3 -m venv .venv && \
+    . .venv/bin/activate && \
+    pip install -e mini-swe-agent-for-nullaway-codefix
+
+# Configure a local-only git identity for benchmark commits created during experiments.
+RUN git config --global user.name "NullRepair Artifact User" && \
+    git config --global user.email "nullrepair-artifact@example.invalid"
+
+# Start Docker daemon when the container launches so the nested build can run.
+COPY --chown=vscode:vscode docker-entrypoint-artifact.sh /usr/local/bin/docker-entrypoint-artifact.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-artifact.sh
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-artifact.sh"]
+CMD ["bash"]
