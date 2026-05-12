@@ -17,7 +17,7 @@ docker load -i nullrepair_artifact_image.tar
 docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/docker.sock nullrepair-issta-artifact:latest bash
 ```
 
-The run command mounts the host's Docker socket into the container.  
+The run command mounts the host's Docker socket into the container and runs the artifact image as root so the socket is accessible.  
 This is needed to run the mini-SWE-agent baseline experiments as the agent runs are executed in separate containers.
 
 Inside the container, the repository is available at `/home/vscode/NullRepairBaseline`.  
