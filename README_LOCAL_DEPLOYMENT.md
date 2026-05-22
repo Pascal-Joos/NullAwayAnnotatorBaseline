@@ -47,10 +47,10 @@ Load and run the image:
 
 ```bash
 docker load -i nullrepair_artifact_image.tar
-docker run --rm -it --name nullrepair_artifact nullrepair-issta-artifact:latest bash
+docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/docker.sock nullrepair-issta-artifact:latest bash
 ```
 
-Inside the container, the repository is available at `/home/vscode/NullRepairBaseline` and uses the `vscode` user to match the devcontainer environment.
+Inside the container, the repository is available at `/home/vscode/NullRepairBaseline` and uses the `root` user.
 
 ## 2. Quick Run
 
