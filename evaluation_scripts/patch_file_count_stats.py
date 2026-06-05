@@ -151,7 +151,7 @@ for key, label in [
 # ── CSV export ─────────────────────────────────────────────────────────────
 out_csv = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "patch_file_count_stats.csv",
+    "../evaluation_data/evaluation_results/per_patch/patch_file_count_stats.csv"
 )
 
 all_file_counts = sorted(
