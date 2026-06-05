@@ -9,9 +9,9 @@ import os.path
 
 # Configuration - Input files
 SCORING_FILES = [
-    '1_michael_initial_scoring_obfuscated(1-50).tsv',
-    '2_manu_initial_scoring_obfuscated(26-75).tsv',
-    '3_martin_initial_scoring_obfuscated(1-25+51-75).tsv'
+    'evaluation_data/evaluation_results/manual_inspection/initial_scoring/1_michael_initial_scoring_obfuscated(1-50).tsv',
+    'evaluation_data/evaluation_results/manual_inspection/initial_scoring/2_manu_initial_scoring_obfuscated(26-75).tsv',
+    'evaluation_data/evaluation_results/manual_inspection/initial_scoring/3_martin_initial_scoring_obfuscated(1-25+51-75).tsv'
 ]
 
 def extract_reviewer_name(filename):
