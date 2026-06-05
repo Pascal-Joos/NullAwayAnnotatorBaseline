@@ -1,6 +1,10 @@
 # NullRepair
 
-TODO: Quick intro to NullRepair. Link to paper, link to github repo.
+NullRepair is an LLM-based tool that automatically repairs nullability errors reported by [NullAway](https://github.com/uber/NullAway) based on safe usage regions. It is built on top of [NullAwayAnnotator](https://github.com/nimakarimipour/NullAwayAnnotator).
+
+The GitHub repository of NullRepair is available at [https://github.com/Pascal-Joos/NullRepairBaseline](https://github.com/Pascal-Joos/NullRepairBaseline)
+
+TODO: add paper link
 
 ## 1. Setup NullRepair
 
@@ -8,6 +12,8 @@ TODO: Quick intro to NullRepair. Link to paper, link to github repo.
 
 Docker.  
 Tested with Docker 29.4.1
+
+TODO: More details
 
 ### 1.2 Installation
 
@@ -72,10 +78,11 @@ Logs are then located at `evaluation_data/logs/eureka/advanced-3` and the change
 ## 3. Inspecting Logs and Data
 
 Correspondence of approach names in the paper and the repository:
---|--
-NullRepair | advanced
-SinglePrompt baseline | basic
-mini-SWE-agent baseline | agent_baseline
+| Paper name | Repository name |
+|---|---|
+| NullRepair | advanced |
+| SinglePrompt baseline | basic |
+| mini-SWE-agent baseline | agent_baseline |
 
 See `evaluation_data/logs` for the logs of executed runs and `benchmarks` for the target projects.  
 The log files are organized by project and experiment mode. Each run creates a new log folder.  
@@ -93,12 +100,36 @@ The logs are structured as follows:
 For the created fixes, you can check the commit history of the respective run's branch (`joos/<log-folder-name>`) in the target project repository (e.g., for NullRepair per-patch on eureka it is the branch `joos/advanced-evaluation-run-gpt5.1` of `benchmarks/eureka`).  
 Each fix made by NullRepair is committed separately with a commit message that includes the error ID and the error message and is then reverted in a subsequent commit.  
 
-Aggregated stats on the runs, plots, and manual inspection results can be found in `evaluation_data/evaluation_results`.
-TODO: More details
+Aggregated stats on the runs, plots, and manual inspection results can be found in `evaluation_data/evaluation_results`, organized as follows:
+
+- `per_patch/` — per-patch level results of the different approaches. Shows success rates, token usage, and timing per benchmark project and as total.
+- `combined/` — combined level results of the different approaches. Shows success rates, token usage, and timing per benchmark project and as total.
+- `manual_inspection/` — the 75-sample manual inspection dataset, per-reviewer initial scores, the consolidated scoring file (`manual_inspection_scoring_with_classification.tsv`), and derived statistics.
+- `venn_diagrams/` — Venn diagrams showing overlap in resolved errors, resolved errors with no failing tests, and in manual inspection scores, across approaches.
+- `stats_excluding_preliminary_study_projects/` — results with the three preliminary-study projects (conductor, litiengine, retrofit) excluded.
 
 ## 4. Reproduce Tables and Figures in the Paper
 
-TODO: Add instructions.
+Pre-computed results are already present in `evaluation_data/evaluation_results/`. To recompute them from the log files, run the single wrapper script from the repository root:
+
+```bash
+python3 reproduce_results.py
+```
+
+This script runs the following steps in order:
+
+1. **Evaluation statistics** (`evaluation_scripts/calculate_evaluation_stats.py`) — aggregates per-error metrics (patch generation rate, error resolution rate, failing tests, token usage, cost) for all six experiment configurations (NullRepair / SinglePrompt / mini-SWE-agent × per-patch / combined). Outputs six TSV files to `evaluation_data/evaluation_results/per_patch/` and `evaluation_data/evaluation_results/combined/`.
+
+2. **Patch file-count statistics** (`evaluation_scripts/patch_file_count_stats.py`) — analyses how many Java files each generated patch touches, broken down by approach and outcome. Prints a summary table and writes `evaluation_scripts/patch_file_count_stats.csv`.
+
+3. **Manual inspection score analysis** (`evaluation_scripts/manual_inspection/analyze_manual_inspection_scores.py`) — reads the consolidated 75-sample manual inspection file and computes per-tool score distributions, win/loss/tie counts, and pairwise matchup tables. Outputs `evaluation_data/evaluation_results/manual_inspection/scoring_stats/manual_inspection_statistics.tsv` and a `_pairwise.tsv` companion.
+
+4. **Inter-rater agreement** (`evaluation_scripts/manual_inspection/calculate_inter_rater_agreement.py`) — computes Cohen's Kappa across the three reviewer pairs over all scored patches and prints a detailed agreement report.
+
+Two additional figures require Jupyter:
+
+- **Venn diagrams** — open and run `evaluation_scripts/create_venn_diagrams.ipynb`.
+- **Manual inspection score plot** — open and run `evaluation_scripts/manual_inspection/manual_inspection_plot.ipynb`.
 
 ## 5. Run a large-scale Experiment
 
@@ -197,8 +228,33 @@ It is recommended to first run NullAwayAnnotator without NullRepair on the proje
 
 ## 7. Customize NullRepair
 
-TODO: Add instructions on changing LLM-model, agent cycles/attempts, etc.
+Key parameters are set in source files and require rebuilding after a change (step 8 of section 6).
+
+**LLM model** — edit `modelName` in `annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java` (line ~204):
+```java
+public String modelName = "openai/gpt-5.1";
+```
+Supported model strings and their pricing are listed in `ChatGPT.java`. The prefix `openai/` is stripped before the API call; any OpenAI-compatible model name can be used.
+
+**Per-error cost budget** — edit `COST_LIMIT` in `annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java` (line ~175):
+```java
+private static final double COST_LIMIT = 0.5;  // USD per error
+```
+NullRepair aborts LLM calls for an error once this limit is reached.
+
+**Analysis depth** — controls how many levels of the call graph are explored when building context. Pass `--depth <n>` on the command line (default: 5):
+```bash
+java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --depth 3
+```
 
 ## 8. Implementation
 
-TODO: Give a quick overview.
+NullRepair extends NullAwayAnnotator. The main entry point is `annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java`. The three repair modes are implemented in `annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/`:
+
+| Class | Mode |
+| --- | --- |
+| `AdvancedNullAwayCodeFix` | `advanced` (NullRepair) |
+| `BasicNullAwayCodeFix` | `basic` (SinglePrompt baseline) |
+| `AgentBaselineNullAwayCodeFix` | `agent_baseline` (mini-SWE-agent baseline) |
+
+LLM communication is handled by `ChatGPT.java` in the same package. Configuration is managed by `Config.java`.
