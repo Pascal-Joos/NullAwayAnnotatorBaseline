@@ -284,10 +284,15 @@ public class Main {
     try (GitUtility git = GitUtility.instance(config)) {
       git.resetHard();
       if (!config.continueRun) {
-        git.safePull();
+        // In no push mode, we can skip pull and delete remote branch steps, to not need signed-in GitHub user.
+        if (pushCommits) {
+          git.safePull();
+        }
         git.checkoutBranch("nimak/auto-code-fix");
         git.resetHard();
-        git.pull();
+        if (pushCommits) {
+          git.pull();
+        }
         git.deleteLocalBranch(config.branchName());
         if (pushCommits) {
           git.deleteRemoteBranch(config.branchName());
