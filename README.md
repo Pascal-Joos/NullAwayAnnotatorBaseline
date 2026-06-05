@@ -1,5 +1,7 @@
 # NullRepair
 
+TODO: Quick intro to NullRepair. Link to paper, link to github repo.
+
 ## 1. Setup NullRepair
 
 ### 1.1 Requirements
@@ -21,7 +23,7 @@ For a lightweight reproduction of the experiment results from the log files, the
 
 ## 2. Quick Run
 
-A small example run where NullRepair is run on three errors of project eureka can be executed with the following command:  
+A small example run where NullRepair is run on three nullability errors of project eureka can be executed with the following command:  
 ```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --selectedErrorIds 2,4,5```
 
 Expected console output (truncated):  
@@ -67,13 +69,31 @@ Commiting changes...
 
 Logs are then located at `evaluation_data/logs/eureka/agentic-advanced-3` and the changes made by NullRepair are committed to the branch `nimak/agentic-advanced-3` in the target project repository at `benchmarks/eureka`.
 
-TODO: More detailed instructions for inspecting the changes made by NullRepair and the logs of the run.
-
 ## 3. Inspecting Logs and Data
 
-See `evaluation_data/logs` for the logs of executed runs and `benchmarks` for the target projects.  
-The log files are organized by project and experiment mode. Each run creates a new log folder.
+Correspondence of approach names in the paper and the repository:
+--|--
+NullRepair | advanced
+SinglePrompt baseline | basic
+mini-SWE-agent baseline | agent_baseline
 
+See `evaluation_data/logs` for the logs of executed runs and `benchmarks` for the target projects.  
+The log files are organized by project and experiment mode. Each run creates a new log folder.  
+For example, for the NullRepair per-patch run on eureka, refer to [evaluation_data/logs/eureka/agentic-advanced-2-evaluation-run-gpt5.1](evaluation_data/logs/eureka/agentic-advanced-2-evaluation-run-gpt5.1) for the logs of the run.  
+The logs are structured as follows:
+
+- `app.log` contains the complete execution log of the run.
+- `log-<errorID>.log` contains the execution log for the specific errorID.
+- `test-log-<errorID>.log` contains the log of the test execution after fixing the specific errorID.
+- `metrics.tsv` contains the metrics on fix success for each error of the run.
+- `token_usage.tsv` contains token usage information for each error of the run.
+- `commits.tsv` contains the commit information for each error of the run, where a fix was created.
+- `timers.tsv` logs the end-to-end time taken for the run.
+
+For the created fixes, you can check the commit history of the respective run's branch (`joos/<log-folder-name>`) in the target project repository (e.g., for NullRepair per-patch on eureka it is the branch `joos/advanced-evaluation-run-gpt5.1` of `benchmarks/eureka`).  
+Each fix made by NullRepair is committed separately with a commit message that includes the error ID and the error message and is then reverted in a subsequent commit.  
+
+Aggregated stats on the runs, plots, and manual inspection results can be found in `evaluation_data/evaluation_results`.
 TODO: More details
 
 ## 4. Reproduce Tables and Figures in the Paper
