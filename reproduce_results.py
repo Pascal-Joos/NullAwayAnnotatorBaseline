@@ -24,12 +24,12 @@ SCORING_STATS_DIR = os.path.join(RESULTS_ROOT, "manual_inspection", "scoring_sta
 
 RUNS = [
     # (mode, config_subdir, combined, output_filename)
-    ("advanced",       "advanced-evaluation-run-gpt5.1",                False, "evaluation_stats_advanced_per_patch.tsv"),
-    ("basic",          "basic-evaluation-run-gpt5.1",                   False, "evaluation_stats_basic_per_patch.tsv"),
-    ("agent_baseline", "agent_baseline-evaluation-run-gpt5.1",          False, "evaluation_stats_agent_baseline_per_patch.tsv"),
-    ("advanced",       "advanced-combined-evaluation-run-gpt5.1",       True,  "evaluation_stats_advanced_combined.tsv"),
-    ("basic",          "basic-combined-evaluation-run-gpt5.1",          True,  "evaluation_stats_basic_combined.tsv"),
-    ("agent_baseline", "agent_baseline-combined-evaluation-run-gpt5.1", True,  "evaluation_stats_agent_baseline_combined.tsv"),
+    ("advanced",       "advanced-evaluation-run-gpt5.1",                False, "evaluation_stats_advanced_per_patch_reproduced.tsv"),
+    ("basic",          "basic-evaluation-run-gpt5.1",                   False, "evaluation_stats_basic_per_patch_reproduced.tsv"),
+    ("agent_baseline", "agent_baseline-evaluation-run-gpt5.1",          False, "evaluation_stats_agent_baseline_per_patch_reproduced.tsv"),
+    ("advanced",       "advanced-combined-evaluation-run-gpt5.1",       True,  "evaluation_stats_advanced_combined_reproduced.tsv"),
+    ("basic",          "basic-combined-evaluation-run-gpt5.1",          True,  "evaluation_stats_basic_combined_reproduced.tsv"),
+    ("agent_baseline", "agent_baseline-combined-evaluation-run-gpt5.1", True,  "evaluation_stats_agent_baseline_combined_reproduced.tsv"),
 ]
 
 
@@ -72,7 +72,8 @@ def main():
     # ── 2. Patch file-count statistics ─────────────────────────────────────
     step("2/4  Computing patch file-count statistics")
     patch_script = os.path.join(EVAL_SCRIPTS, "patch_file_count_stats.py")
-    run([sys.executable, patch_script])
+    patch_output = os.path.join(PER_PATCH_DIR, "patch_file_count_stats_reproduced.csv")
+    run([sys.executable, patch_script, "--output", patch_output])
 
     # ── 3. Manual inspection score analysis ───────────────────────────────
     step("3/4  Analyzing manual inspection scores")
@@ -80,14 +81,15 @@ def main():
         RESULTS_ROOT, "manual_inspection",
         "manual_inspection_scoring_with_classification.tsv"
     )
-    stats_output = os.path.join(SCORING_STATS_DIR, "manual_inspection_statistics.tsv")
+    stats_output = os.path.join(SCORING_STATS_DIR, "manual_inspection_statistics_reproduced.tsv")
     analyze_script = os.path.join(EVAL_SCRIPTS, "manual_inspection", "analyze_manual_inspection_scores.py")
     run([sys.executable, analyze_script, consolidated_file, stats_output])
 
     # ── 4. Inter-rater agreement ───────────────────────────────────────────
     step("4/4  Calculating inter-rater agreement (Cohen's Kappa)")
     kappa_script = os.path.join(EVAL_SCRIPTS, "manual_inspection", "calculate_inter_rater_agreement.py")
-    run([sys.executable, kappa_script], cwd=ROOT)
+    kappa_output = os.path.join(SCORING_STATS_DIR, "agreement_analysis_reproduced.txt")
+    run([sys.executable, kappa_script, "--output", kappa_output], cwd=ROOT)
 
     # ── Summary ────────────────────────────────────────────────────────────
     print(f"\n{'='*70}")

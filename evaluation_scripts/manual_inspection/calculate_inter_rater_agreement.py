@@ -225,38 +225,49 @@ def interpret_kappa(kappa):
         return "Almost perfect agreement"
 
 def main():
-    print("Inter-Rater Agreement Analysis for NullAway Scoring")
-    print("=" * 60)
-    
-    # Load data
-    try:
-        merged_data, reviewer_names = load_scoring_data(SCORING_FILES)
-        print(f"\nLoaded data for reviewers: {', '.join(reviewer_names)}")
-        print(f"Total unique samples: {len(merged_data)}")
-        
-        # Show sample distribution across reviewers
-        sample_distribution = calculate_fleiss_kappa_approximation(merged_data, reviewer_names)
-        
-        # Calculate overall agreement treating all reviewer pairs as single dataset
-        kappa_result = calculate_overall_agreement(merged_data, reviewer_names)
-        
-        # Summary
-        print(f"\n{'='*60}")
-        print("SUMMARY")
-        print(f"{'='*60}")
-        
-        if kappa_result is not None:
-            print(f"Overall Cohen's Kappa: {kappa_result:.3f} ({interpret_kappa(kappa_result)})")
-        else:
-            print("Unable to calculate Cohen's Kappa - no valid score pairs found")
-        
-        print(f"\nNote: This kappa value treats all reviewer pairs across all samples")
-        print(f"as a single inter-rater agreement measurement, since each sample")
-        print(f"is scored by exactly 2 out of 3 total reviewers.")
-        
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+    import argparse
+    import contextlib
+
+    parser = argparse.ArgumentParser(description="Inter-rater agreement analysis.")
+    parser.add_argument("--output", default=None, help="Write output to this file instead of stdout only.")
+    args = parser.parse_args()
+
+    def _run():
+        print("Inter-Rater Agreement Analysis for NullAway Scoring")
+        print("=" * 60)
+
+        try:
+            merged_data, reviewer_names = load_scoring_data(SCORING_FILES)
+            print(f"\nLoaded data for reviewers: {', '.join(reviewer_names)}")
+            print(f"Total unique samples: {len(merged_data)}")
+
+            sample_distribution = calculate_fleiss_kappa_approximation(merged_data, reviewer_names)
+            kappa_result = calculate_overall_agreement(merged_data, reviewer_names)
+
+            print(f"\n{'='*60}")
+            print("SUMMARY")
+            print(f"{'='*60}")
+
+            if kappa_result is not None:
+                print(f"Overall Cohen's Kappa: {kappa_result:.3f} ({interpret_kappa(kappa_result)})")
+            else:
+                print("Unable to calculate Cohen's Kappa - no valid score pairs found")
+
+            print(f"\nNote: This kappa value treats all reviewer pairs across all samples")
+            print(f"as a single inter-rater agreement measurement, since each sample")
+            print(f"is scored by exactly 2 out of 3 total reviewers.")
+
+        except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            with contextlib.redirect_stdout(f):
+                _run()
+        print(f"Agreement analysis saved to: {args.output}")
+    else:
+        _run()
 
 if __name__ == "__main__":
     main()

@@ -118,18 +118,22 @@ python3 reproduce_results.py
 
 This script runs the following steps in order:
 
-1. **Evaluation statistics** (`evaluation_scripts/calculate_evaluation_stats.py`) — aggregates per-error metrics (patch generation rate, error resolution rate, failing tests, token usage, cost) for all six experiment configurations (NullRepair / SinglePrompt / mini-SWE-agent × per-patch / combined). Outputs six TSV files to `evaluation_data/evaluation_results/per_patch/` and `evaluation_data/evaluation_results/combined/`.
+Reproduced output files are written with a `_reproduced` suffix so they sit alongside the originals without overwriting them.
 
-2. **Patch file-count statistics** (`evaluation_scripts/patch_file_count_stats.py`) — analyses how many Java files each generated patch touches, broken down by approach and outcome. Prints a summary table and writes `evaluation_scripts/patch_file_count_stats.csv`.
+1. **Evaluation statistics** (`evaluation_scripts/calculate_evaluation_stats.py`) — aggregates per-error metrics (patch generation rate, error resolution rate, failing tests, token usage, cost) for all six experiment configurations (NullRepair / SinglePrompt / mini-SWE-agent × per-patch / combined). Outputs six TSV files to `evaluation_data/evaluation_results/per_patch/` and `evaluation_data/evaluation_results/combined/` with names such as `evaluation_stats_advanced_per_patch_reproduced.tsv`.
 
-3. **Manual inspection score analysis** (`evaluation_scripts/manual_inspection/analyze_manual_inspection_scores.py`) — reads the consolidated 75-sample manual inspection file and computes per-tool score distributions, win/loss/tie counts, and pairwise matchup tables. Outputs `evaluation_data/evaluation_results/manual_inspection/scoring_stats/manual_inspection_statistics.tsv` and a `_pairwise.tsv` companion.
+2. **Patch file-count statistics** (`evaluation_scripts/patch_file_count_stats.py`) — analyses how many Java files each generated patch touches, broken down by approach and outcome. Prints a summary table and writes `evaluation_data/evaluation_results/per_patch/patch_file_count_stats_reproduced.csv`.
 
-4. **Inter-rater agreement** (`evaluation_scripts/manual_inspection/calculate_inter_rater_agreement.py`) — computes Cohen's Kappa across the three reviewer pairs over all scored patches and prints a detailed agreement report.
+3. **Manual inspection score analysis** (`evaluation_scripts/manual_inspection/analyze_manual_inspection_scores.py`) — reads the consolidated 75-sample manual inspection file and computes per-tool score distributions, win/loss/tie counts, and pairwise matchup tables. Outputs `evaluation_data/evaluation_results/manual_inspection/scoring_stats/manual_inspection_statistics_reproduced.tsv` and a `_reproduced_pairwise.tsv` companion.
+
+4. **Inter-rater agreement** (`evaluation_scripts/manual_inspection/calculate_inter_rater_agreement.py`) — computes Cohen's Kappa across the three reviewer pairs over all scored patches and writes the full report to `evaluation_data/evaluation_results/manual_inspection/scoring_stats/agreement_analysis_reproduced.txt`.
 
 Two additional figures require Jupyter:
 
 - **Venn diagrams** — open and run `evaluation_scripts/create_venn_diagrams.ipynb`.
 - **Manual inspection score plot** — open and run `evaluation_scripts/manual_inspection/manual_inspection_plot.ipynb`.
+
+TODO: Test the figure plots
 
 ## 5. Run a large-scale Experiment
 

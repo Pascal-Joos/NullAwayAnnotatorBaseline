@@ -7,6 +7,7 @@ Outcomes tracked:
   - resolved_no_fail : resolved + FAILING_TESTS == false
 """
 
+import argparse
 import csv
 import os
 import subprocess
@@ -149,10 +150,13 @@ for key, label in [
 
 
 # ── CSV export ─────────────────────────────────────────────────────────────
-out_csv = os.path.join(
+_default_csv = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "../evaluation_data/evaluation_results/per_patch/patch_file_count_stats.csv"
 )
+_parser = argparse.ArgumentParser(add_help=False)
+_parser.add_argument("--output", default=_default_csv)
+out_csv = _parser.parse_known_args()[0].output
 
 all_file_counts = sorted(
     set(
