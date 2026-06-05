@@ -459,7 +459,7 @@ def main() -> None:
     parser.add_argument(
         "--config-subdir",
         type=str,
-        default="agentic-agent_baseline-2",
+        default="agent_baseline-3",
         help="Subdirectory name for the specific configuration to analyze (default: %(default)s)",
     )
     parser.add_argument(

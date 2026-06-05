@@ -34,9 +34,9 @@ Received arguments: eureka, --mode, advanced, --selectedErrorIds, 2,4,5
 Running eureka benchmark in advanced mode.
 Resolve remaining errors mode: ADVANCED
 Selected error IDs: [2, 4, 5]
-Configuring logging for benchmark: eureka, branch: nimak/agentic-advanced-3
-Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/agentic-advanced-3
-Running on branch name: nimak/agentic-advanced-3
+Configuring logging for benchmark: eureka, branch: joos/advanced-3
+Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/advanced-3
+Running on branch name: joos/advanced-3
 Starting annotator...
 Preprocessing...
 Annotating...false
@@ -67,7 +67,7 @@ Commiting changes...
 ...
 ```
 
-Logs are then located at `evaluation_data/logs/eureka/agentic-advanced-3` and the changes made by NullRepair are committed to the branch `nimak/agentic-advanced-3` in the target project repository at `benchmarks/eureka`.
+Logs are then located at `evaluation_data/logs/eureka/advanced-3` and the changes made by NullRepair are committed to the branch `joos/advanced-3` in the target project repository at `benchmarks/eureka`.
 
 ## 3. Inspecting Logs and Data
 
@@ -79,7 +79,7 @@ mini-SWE-agent baseline | agent_baseline
 
 See `evaluation_data/logs` for the logs of executed runs and `benchmarks` for the target projects.  
 The log files are organized by project and experiment mode. Each run creates a new log folder.  
-For example, for the NullRepair per-patch run on eureka, refer to [evaluation_data/logs/eureka/agentic-advanced-2-evaluation-run-gpt5.1](evaluation_data/logs/eureka/agentic-advanced-2-evaluation-run-gpt5.1) for the logs of the run.  
+For example, for the NullRepair per-patch run on eureka, refer to [evaluation_data/logs/eureka/advanced-evaluation-run-gpt5.1](evaluation_data/logs/eureka/advanced-evaluation-run-gpt5.1) for the logs of the run.  
 The logs are structured as follows:
 
 - `app.log` contains the complete execution log of the run.

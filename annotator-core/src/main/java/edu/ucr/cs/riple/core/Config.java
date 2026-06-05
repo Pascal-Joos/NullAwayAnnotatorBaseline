@@ -206,7 +206,7 @@ public class Config {
   public int agentCycleLimit = 50;
 
   public String branchName() {
-    return (String.format("nimak/agentic-%s-%s", resolveRemainingErrorMode.name(), Main.VERSION)
+    return (String.format("joos/%s-%s", resolveRemainingErrorMode.name(), Main.VERSION)
             + (Main.DEBUG_MODE ? "-debug" : "")
             + (combined ? "-combined" : ""))
         .toLowerCase(Locale.getDefault());

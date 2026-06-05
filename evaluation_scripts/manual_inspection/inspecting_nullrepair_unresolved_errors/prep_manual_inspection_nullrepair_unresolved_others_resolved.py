@@ -23,9 +23,9 @@ GITHUB_BASE_URL = "https://github.com/Pascal-Joos/{}/commit/{}"
 
 BENCHMARKS_LOGS = "/home/vscode/NullRepairBaseline/evaluation_data/logs"
 
-AGENT_BASELINE_VERSION = "agentic-agent_baseline-2-evaluation-run-gpt5.1"
-BASIC_VERSION = "agentic-basic-2-evaluation-run-gpt5.1"
-ADVANCED_VERSION = "agentic-advanced-2-evaluation-run-gpt5.1"
+AGENT_BASELINE_VERSION = "agent_baseline-evaluation-run-gpt5.1"
+BASIC_VERSION = "basic-evaluation-run-gpt5.1"
+ADVANCED_VERSION = "advanced-evaluation-run-gpt5.1"
 
 def make_github_url(commit_hash, benchmark, name):
     url = GITHUB_BASE_URL.format(benchmark, commit_hash)

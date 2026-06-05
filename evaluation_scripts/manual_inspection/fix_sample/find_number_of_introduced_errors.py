@@ -52,9 +52,9 @@ BENCHMARKS_PATH = "/home/vscode/NullRepairBaseline/benchmarks"
 BENCHMARKS_LOGS = "/home/vscode/NullRepairBaseline/evaluation_data/logs"
 STATUS_PATH = "/home/vscode/NullRepairBaseline/evaluation_data/status"
 VERSIONS = {
-    "hash_advanced": "agentic-advanced-2-evaluation-run-gpt5.1",
-    "hash_basic": "agentic-basic-2-evaluation-run-gpt5.1", 
-    "hash_agent_baseline": "agentic-agent_baseline-2-evaluation-run-gpt5.1"
+    "hash_advanced": "advanced-evaluation-run-gpt5.1",
+    "hash_basic": "basic-evaluation-run-gpt5.1", 
+    "hash_agent_baseline": "agent_baseline-evaluation-run-gpt5.1"
 }
 EXECUTION_LOG = f"execution-{os.path.basename(__file__)}.log"
 
@@ -137,9 +137,9 @@ def serialize_status(status, path):
         json.dump(status, file, indent=4)
     
  
-os.makedirs(os.path.join(STATUS_PATH, "agentic-advanced-2-evaluation-run-gpt5.1"), exist_ok=True)
-os.makedirs(os.path.join(STATUS_PATH, "agentic-basic-2-evaluation-run-gpt5.1"), exist_ok=True) 
-os.makedirs(os.path.join(STATUS_PATH, "agentic-agent_baseline-2-evaluation-run-gpt5.1"), exist_ok=True)
+os.makedirs(os.path.join(STATUS_PATH, "advanced-evaluation-run-gpt5.1"), exist_ok=True)
+os.makedirs(os.path.join(STATUS_PATH, "basic-evaluation-run-gpt5.1"), exist_ok=True) 
+os.makedirs(os.path.join(STATUS_PATH, "agent_baseline-evaluation-run-gpt5.1"), exist_ok=True)
 
 
 # Read the manual inspection TSV file to identify commits that introduced errors

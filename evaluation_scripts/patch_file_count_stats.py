@@ -17,9 +17,9 @@ LOG_ROOT        = os.path.expanduser("~/NullRepairBaseline/evaluation_data/logs"
 BENCHMARK_ROOT  = os.path.expanduser("~/NullRepairBaseline/benchmarks")
 
 APPROACHES = {
-    "advanced":       "agentic-advanced-2-evaluation-run-gpt5.1",
-    "basic":          "agentic-basic-2-evaluation-run-gpt5.1",
-    "agent_baseline": "agentic-agent_baseline-2-evaluation-run-gpt5.1",
+    "advanced":       "advanced-evaluation-run-gpt5.1",
+    "basic":          "basic-evaluation-run-gpt5.1",
+    "agent_baseline": "agent_baseline-evaluation-run-gpt5.1",
 }
 APPROACH_LABELS = {
     "advanced":       "Advanced",

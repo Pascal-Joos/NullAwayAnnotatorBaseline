@@ -190,7 +190,7 @@ merged into first (orange color)
 
 
 
-### Agentic vs Basic
+### Agent_baseline vs Basic
 
 The two baselines often produce very similar fixes. Especially, if fixes are simple/local.  
 NullRepair can be quite different as it uses a more methodical approach in creating fixes.

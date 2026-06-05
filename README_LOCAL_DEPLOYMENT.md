@@ -65,9 +65,9 @@ Received arguments: eureka, --mode, advanced, --selectedErrorIds, 2,4,5
 Running eureka benchmark in advanced mode.
 Resolve remaining errors mode: ADVANCED
 Selected error IDs: [2, 4, 5]
-Configuring logging for benchmark: eureka, branch: nimak/agentic-advanced-3
-Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/agentic-advanced-3
-Running on branch name: nimak/agentic-advanced-3
+Configuring logging for benchmark: eureka, branch: joos/advanced-3
+Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/advanced-3
+Running on branch name: joos/advanced-3
 Starting annotator...
 Preprocessing...
 Annotating...false
@@ -98,7 +98,7 @@ Commiting changes...
 ...
 ```
 
-Logs are then located at `evaluation_data/logs/eureka/agentic-advanced-3` and the changes made by NullRepair are committed to the branch `nimak/agentic-advanced-3` in the target project repository at `benchmarks/eureka`.
+Logs are then located at `evaluation_data/logs/eureka/advanced-3` and the changes made by NullRepair are committed to the branch `joos/advanced-3` in the target project repository at `benchmarks/eureka`.
 
 TODO: More detailed instructions for inspecting the changes made by NullRepair and the logs of the run.
 
