@@ -206,7 +206,7 @@ For our example, after line 136 add the following:
     java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar jcommander --mode advanced
     ```
 
-It is recommended to first run NullAwayAnnotator without NullRepair on the project and to commit (and push) any addeded annotations to the `nimak/auto-code-fix` branch before running NullRepair. This way, the changes made by NullRepair are more clear and the project is in a clean state before running NullRepair.
+It is recommended to first run NullAwayAnnotator without NullRepair on the project and to commit (and push) any added annotations to the `nimak/auto-code-fix` branch before running NullRepair. This way, the changes made by NullRepair are more clear and the project is in a clean state before running NullRepair.
 
 ## 7. Customize NullRepair
 
