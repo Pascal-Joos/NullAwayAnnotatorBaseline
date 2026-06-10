@@ -2,18 +2,23 @@
 
 NullRepair is an LLM-based tool that automatically repairs nullability errors reported by [NullAway](https://github.com/uber/NullAway) based on safe usage regions. It is built on top of [NullAwayAnnotator](https://github.com/nimakarimipour/NullAwayAnnotator).
 
-The GitHub repository of NullRepair is available at [https://github.com/Pascal-Joos/NullRepairBaseline](https://github.com/Pascal-Joos/NullRepairBaseline)
+The GitHub repository of NullRepair is available at [https://github.com/Pascal-Joos/NullRepairBaseline](https://github.com/Pascal-Joos/NullRepairBaseline).
 
-TODO: add paper link
+The pre-print is located at [LLM-Based_Repair_of_Static_Nullability_Errors.pdf](LLM-Based_Repair_of_Static_Nullability_Errors.pdf).
 
 ## 1. Setup NullRepair
 
 ### 1.1 Requirements
 
-Docker.  
-Tested with Docker 29.4.1
+Technical requirements:
 
-TODO: More details
+- Operating system: Linux version >= x; MacOS and Windows have not been tested.
+- Installation of Docker. Has been tested on Linux with Docker 29.4.1.
+- An OpenAI API key. This is needed to run NullRepair and the baselines, which use the OpenAI API. For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
+
+User requirements:
+
+- Familiarity with Docker and Git.
 
 ### 1.2 Installation
 
@@ -24,7 +29,7 @@ Inside the docker container, run the following commands to set up the environmen
 
 2. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.  
 This is needed to run NullRepair and the baselines, which use the OpenAI API.  
-For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 4.).  
+For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
 ```python3 set_openai_key.py```
 
 ## 2. Quick Run

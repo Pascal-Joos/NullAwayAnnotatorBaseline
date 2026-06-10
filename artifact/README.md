@@ -4,9 +4,15 @@
 
 ### 1.1 Requirements
 
-Linux system.  
-Docker.  
-Tested with Docker 29.4.1
+Technical requirements:
+
+- Operating system: Linux version >= x; MacOS and Windows have not been tested.
+- Installation of Docker. Has been tested on Linux with Docker 29.4.1.
+- An OpenAI API key. This is needed to run NullRepair and the baselines, which use the OpenAI API. For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
+
+User requirements:
+
+- Familiarity with Docker and Git.
 
 ### 1.2 Installation
 
