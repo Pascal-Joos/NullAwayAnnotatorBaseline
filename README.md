@@ -246,7 +246,7 @@ NullRepair aborts LLM calls for an error once this limit is reached.
 
 To modify the cost limit and cycle limit for the mini-SWE-agent baseline, edit `agentCostLimit` and `agentCycleLimit` in [Config.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java#205-206):
 
-**Analysis depth** — controls how many levels of the call graph are explored when building context. Pass `--depth <n>` on the command line (default: 5):
+**Analysis depth** — controls how many levels of the call graph are explored when building context. Pass `--depth <n>` on the command line (default: 6):
 
 ```bash
 java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --depth 3

@@ -263,7 +263,7 @@ public class Main {
       // "-rboserr", // redirect build output stream and error stream
       verbose ? "-rboserr" : "",
       "--depth",
-      "6",
+      cmd.getOptionValue("depth", "6"),
       pushCommits ? "--pushCommits" : "",
       continueRun ? "--continueRunAtError" : "",
       continueRun ? String.valueOf(continueRunAtError) : "",
@@ -467,6 +467,15 @@ public class Main {
             .type(ArrayList.class)
             .desc(
                 "Comma-separated list of error IDs to run on (e.g., 1,2,3). This must not be combined with --continueRunAtError.")
+            .build());
+
+    options.addOption(
+        Option.builder()
+            .longOpt("depth")
+            .option("d")
+            .hasArg()
+            .argName("n")
+            .desc("Analysis depth for context building (default: 6)")
             .build());
 
     return options;
