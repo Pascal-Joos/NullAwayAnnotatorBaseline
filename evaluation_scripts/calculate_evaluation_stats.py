@@ -52,20 +52,28 @@ class BenchmarkStats:
         self.total_monetary_cost += float(patch.get("monetary_cost", 0.0))
 
     def finalize(self, config_dir: str) -> Dict:
-        data = asdict(self)
+        # Special handling for litiengine, where in combined mode some errors were skipped 
+        # as they were already fixed previously.
+        if self.project == "litiengine":
+            self.total_target_errors = 152
 
-        if self.total_target_errors > 0:
-            data["avg_execution_time_sec"] = self.total_execution_time_sec / self.total_target_errors
-            data["avg_agent_cycles"] = self.total_agent_cycles / self.total_target_errors
-            data["avg_tokens"] = self.total_tokens / self.total_target_errors
-            data["avg_uncached_input_tokens"] = self.uncached_input_tokens / self.total_target_errors
-            data["avg_cached_input_tokens"] = self.cached_input_tokens / self.total_target_errors
-            data["avg_completion_tokens"] = self.completion_tokens / self.total_target_errors
-            data["avg_monetary_cost"] = self.total_monetary_cost / self.total_target_errors
+        data = asdict(self)
+        total_target_errors = data["total_target_errors"]
+
+        if total_target_errors > 0:
+            data["avg_execution_time_sec"] = self.total_execution_time_sec / total_target_errors
+            data["avg_agent_cycles"] = self.total_agent_cycles / total_target_errors
+            data["avg_tokens"] = self.total_tokens / total_target_errors
+            data["avg_uncached_input_tokens"] = self.uncached_input_tokens / total_target_errors
+            data["avg_cached_input_tokens"] = self.cached_input_tokens / total_target_errors
+            data["avg_completion_tokens"] = self.completion_tokens / total_target_errors
+            data["avg_monetary_cost"] = self.total_monetary_cost / total_target_errors
         else:
             data["avg_execution_time_sec"] = 0.0
             data["avg_agent_cycles"] = 0.0
             data["avg_tokens"] = 0.0
+            data["avg_uncached_input_tokens"] = 0.0
+            data["avg_cached_input_tokens"] = 0.0
             data["avg_completion_tokens"] = 0.0
             data["avg_monetary_cost"] = 0.0
 
