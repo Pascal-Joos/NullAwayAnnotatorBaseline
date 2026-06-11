@@ -205,8 +205,8 @@ This includes adding a file prepare.sh.
     ./gradlew spotlessApply
     ```
 
-7. Add the project to the list of target projects with adequate configuration in [annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java#L136).  
-For our example, after line 136 add the following:  
+7. Add the project to the list of target projects with adequate configuration in [annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java#L139).  
+For our example, after line 139 add the following:  
 
     ```java
     benchmarks.put("jcommander", new Benchmark("com.beust.jcommander", "jcommander", "compileJava", "test"));
@@ -230,8 +230,6 @@ For our example, after line 136 add the following:
     ```bash
     java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar jcommander --mode advanced
     ```
-
-It is recommended to first run NullAwayAnnotator without NullRepair on the project and to commit (and push) any added annotations to the `nimak/auto-code-fix` branch before running NullRepair. This way, the changes made by NullRepair are more clear and the project is in a clean state before running NullRepair.
 
 ## 7. Customize NullRepair
 
