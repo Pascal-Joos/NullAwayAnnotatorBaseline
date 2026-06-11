@@ -400,6 +400,15 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
 
     codeFix.collectImpacts();
     AtomicInteger counter = new AtomicInteger(0);
+    AtomicInteger processedCounter = new AtomicInteger(0);
+    int effectiveTotal;
+    if (config.selectedErrorIdsProvided) {
+      effectiveTotal = config.selectedErrorIds.size();
+    } else if (config.continueRun) {
+      effectiveTotal = remainingErrors.size() - config.continueRunAtError + 1;
+    } else {
+      effectiveTotal = remainingErrors.size();
+    }
     // Collect regions with remaining errors.
     logger.trace("Resolving remaining errors: {} errors.", remainingErrors.size());
     // related to log
@@ -502,6 +511,10 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                     // Log time taken, excluding committing the changes and calculating metrics.
                     long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
                     System.out.println("Time taken to fix error: " + elapsedTimePerError + " ms");
+                    int processed = processedCounter.incrementAndGet();
+                    System.out.printf(
+                        "Progress: %d / %d errors processed (%.0f%%)%n",
+                        processed, effectiveTotal, (processed * 100.0) / effectiveTotal);
 
                     if (config.actualRunEnabled()) {
                       long currentLineNumber = Utility.getLineCountOfFile(config.logPath);
