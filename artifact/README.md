@@ -1,5 +1,8 @@
 # NullRepair Artifact Instructions
 
+This README only explains how to load and connect to the artifact container.  
+For the complete artifact instructions, please refer to the `README.md` inside the container at `/home/vscode/NullRepairBaseline/README.md`, once the container is running.
+
 ## 1. Requirements
 
 Artifact was packaged as an x86_64 Docker image.
@@ -28,7 +31,7 @@ docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/
 ```
 
 The run command mounts the host's Docker socket into the container and runs the artifact image as root, so the socket is accessible.  
-This is needed to run the mini-SWE-agent baseline experiments as the agent runs are executed in separate containers.
+This is needed to run the mini-SWE-agent baseline experiments, as the agent runs are executed in separate containers.
 
 ### 2.2. macOS Systems (Intel and Apple Silicon)
 
@@ -65,7 +68,7 @@ docker run --rm -it --platform linux/amd64 --name nullrepair_artifact \
   nullrepair-issta-artifact:latest bash
 ```
 
-If you enabled **"Allow the default Docker socket to be used"** in Docker Desktop settings (*Settings → Advanced*), `/var/run/docker.sock` will always be available, and the socket path is the same as on Linux.
+
 
 ### 2.3. Windows Systems
 
