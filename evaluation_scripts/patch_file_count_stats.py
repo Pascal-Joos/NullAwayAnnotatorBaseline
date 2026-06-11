@@ -14,8 +14,8 @@ import subprocess
 from collections import Counter, defaultdict
 
 # ── Config ─────────────────────────────────────────────────────────────────
-LOG_ROOT        = os.path.expanduser("~/NullRepairBaseline/evaluation_data/logs")
-BENCHMARK_ROOT  = os.path.expanduser("~/NullRepairBaseline/benchmarks")
+LOG_ROOT        = "/home/vscode/NullRepairBaseline/evaluation_data/logs"
+BENCHMARK_ROOT  = "/home/vscode/NullRepairBaseline/benchmarks"
 
 APPROACHES = {
     "advanced":       "advanced-evaluation-run-gpt5.1",
