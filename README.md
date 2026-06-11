@@ -6,9 +6,22 @@ The GitHub repository of NullRepair is available at [https://github.com/Pascal-J
 
 The pre-print is located at [LLM-Based_Repair_of_Static_Nullability_Errors.pdf](LLM-Based_Repair_of_Static_Nullability_Errors.pdf).
 
-## 1. Setup NullRepair
+## 1. Getting Started
 
-### 1.1 Requirements
+### 1.1. Artifact Description
+
+The artifact contains the following relevant files and folders:
+
+- `annotator-core` — the main codebase of NullRepair and the baselines, including the implementation of the repair approaches, the experiment framework, and the configuration for the target projects.
+- `mini-swe-agent-for-nullaway-codefix` — mini-SWE-agent adapted for the NullAway error repair setting, used for the mini-SWE-agent baseline.
+- `evaluation_scripts` — scripts for analyzing the logs of the runs, reproducing the evaluation results, and creating the figures in the paper.
+- `evaluation_data` — the logs of the runs and the computed evaluation results including the manual inspection.
+- `benchmarks` — the target projects used in the experiments. Each project is a separate Git repository with branches for each run.
+- `reproduce_results.py` — a wrapper script to reproduce the evaluation results from the log files.
+- `run_nullrepair_and_baselines.py` — a wrapper script to run all experiments on all projects with all three modes and both patch-level and aggregate-level analysis.
+- `.devcontainer/` — configuration for a Dev Container for easy development using VS Code (when not running inside the Docker container).
+
+### 1.2. Requirements
 
 Artifact was packaged as an x86_64 Docker image.
 
@@ -24,7 +37,7 @@ User requirements:
 
 - Familiarity with Docker and Git.
 
-### 1.2 Installation
+### 1.3. Installation
 
 Inside the docker container, run the following commands to set up the environment.
 
@@ -36,7 +49,7 @@ This is needed to run NullRepair and the baselines, which use the OpenAI API.
 For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
 ```python3 set_openai_key.py```
 
-## 2. Quick Run
+### 1.4. Quick Run (Smoke Test)
 
 A small example run where NullRepair is run on three nullability errors of project eureka can be executed with the following command:  
 ```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --selectedErrorIds 2,4,5```
@@ -87,18 +100,22 @@ Commiting changes...
 
 Logs are then located at `evaluation_data/logs/eureka/advanced-3` and the changes made by NullRepair are committed to the branch `joos/advanced-3` in the target project repository at `benchmarks/eureka`.
 
-## 3. Inspecting Logs and Data
+## 2. Inspecting Logs and Evaluation Results
 
 Correspondence of approach names in the paper and the repository:
+
 | Paper name | Repository name |
-|---|---|
+| --- | --- |
 | NullRepair | advanced |
 | SinglePrompt baseline | basic |
 | mini-SWE-agent baseline | agent_baseline |
 
+### 2.1. Logs
+
 See `evaluation_data/logs` for the logs of executed runs and `benchmarks` for the target projects.  
-The log files are organized by project and experiment mode. Each run creates a new log folder.  
-For example, for the NullRepair per-patch run on eureka, refer to [evaluation_data/logs/eureka/advanced-evaluation-run-gpt5.1](evaluation_data/logs/eureka/advanced-evaluation-run-gpt5.1) for the logs of the run.  
+The log files are organized by project and by experiment configuration (used approach and per-patch/combined mode). Each run creates a new log folder.  
+For example, for the run on eureka of NullRepair in per-patch mode, refer to [evaluation_data/logs/eureka/advanced-evaluation-run-gpt5.1](evaluation_data/logs/eureka/advanced-evaluation-run-gpt5.1) for the logs of the run.  
+
 The logs are structured as follows:
 
 - `app.log` contains the complete execution log of the run.
@@ -110,17 +127,26 @@ The logs are structured as follows:
 - `timers.tsv` logs the end-to-end time taken for the run.
 
 For the created fixes, you can check the commit history of the respective run's branch (`joos/<log-folder-name>`) in the target project repository (e.g., for NullRepair per-patch on eureka it is the branch `joos/advanced-evaluation-run-gpt5.1` of `benchmarks/eureka`).  
-Each fix made by NullRepair is committed separately with a commit message that includes the error ID and the error message and is then reverted in a subsequent commit.  
+Each fix made by NullRepair is committed separately with a commit message that includes the error ID and the error message and is then reverted in a subsequent commit (for the per-patch mode).  
+
+### 2.2. Aggregated Evaluation Results
 
 Aggregated stats on the runs, plots, and manual inspection results can be found in `evaluation_data/evaluation_results`, organized as follows:
 
-- `per_patch/` — per-patch level results of the different approaches. Shows success rates, token usage, and timing per benchmark project and as total.
-- `combined/` — combined level results of the different approaches. Shows success rates, token usage, and timing per benchmark project and as total.
-- `manual_inspection/` — the 75-sample manual inspection dataset, per-reviewer initial scores, the consolidated scoring file (`manual_inspection_scoring_with_classification.tsv`), and derived statistics.
-- `venn_diagrams/` — Venn diagrams showing overlap in resolved errors, resolved errors with no failing tests, and in manual inspection scores, across approaches.
-- `stats_excluding_preliminary_study_projects/` — results with the three preliminary-study projects (conductor, litiengine, retrofit) excluded.
+- `per_patch/` **Corresponds to: RQ1-C1 (Table 2), RQ2 (Table 4)**  
+per-patch level results of the different approaches. Shows success rates, failing tests, token usage, and timing per benchmark project and as total.
+- `combined/` **Corresponds to: RQ1-C1 (Table 2), RQ1-C2 (Table 3)**  
+combined level results of the different approaches. Shows success rates, failing tests, token usage, and timing per benchmark project and as total.
+- `manual_inspection/` **Corresponds to: RQ1-C3**  
+the 75-sample manual inspection dataset, per-reviewer initial scores, the consolidated scoring file (`manual_inspection_scoring_with_classification.tsv`), and derived statistics.
+The scoring file [manual_inspection_scoring_with_classification.tsv](evaluation_data/evaluation_results/manual_inspection/manual_inspection_scoring_with_classification.tsv) is most relevant for reproducing and validating the manual inspection results. It contains for all 75 samples the full reasoning of the reviewers' initial scoring, subsequent consolidation discussions, and the final consolidated scores.
+Import it into Google Slides, Excel, or similar for better readability.
+- `venn_diagrams/` **Not included in the accepted paper version**  
+Venn diagrams showing overlap in resolved errors, resolved errors with no failing tests, and in manual inspection scores, across approaches.
+- `stats_excluding_preliminary_study_projects/` **Corresponds to: Threats to Validity**  
+results with the three preliminary-study projects (conductor, litiengine, retrofit) excluded.
 
-## 4. Reproduce Tables and Figures in the Paper
+## 3. Reproduce Tables and Figures in the Paper (Short-Hand Reproduction of RQ1 and RQ2)
 
 Pre-computed results are already present in `evaluation_data/evaluation_results/`. To recompute them from the log files, run the single wrapper script from the repository root:
 
@@ -132,24 +158,41 @@ Reproduced output files are written with a `_reproduced` suffix, so they sit alo
 
 This script runs the following steps in order:
 
-1. **Evaluation statistics** (`evaluation_scripts/calculate_evaluation_stats.py`) — aggregates per-error metrics (total generated patches, total resolved errors, failing tests, token usage, cost) for all six experiment configurations (NullRepair / SinglePrompt / mini-SWE-agent × per-patch / combined). Outputs six TSV files to `evaluation_data/evaluation_results/per_patch/` and `evaluation_data/evaluation_results/combined/` with names such as `evaluation_stats_advanced_per_patch_reproduced.tsv`.
+1. **Evaluation statistics** (`evaluation_scripts/calculate_evaluation_stats.py`):
+  
+    **Corresponds to: RQ1-C1 (Table 2), RQ1-C2 (Table 3), RQ2 (Table 4)**  
+    aggregates per-error metrics (total generated patches, total resolved errors, failing tests, token usage, cost) for all six experiment configurations (NullRepair / SinglePrompt / mini-SWE-agent × per-patch / combined). Outputs six TSV files to `evaluation_data/evaluation_results/per_patch/` and `evaluation_data/evaluation_results/combined/` with names such as `evaluation_stats_advanced_per_patch_reproduced.tsv`.
 
-2. **Patch file-count statistics** (`evaluation_scripts/patch_file_count_stats.py`) — analyses how many Java files each generated patch touches, broken down by approach and outcome. Prints a summary table and writes `evaluation_data/evaluation_results/per_patch/patch_file_count_stats_reproduced.csv`.
+1. **Patch file-count statistics** (`evaluation_scripts/patch_file_count_stats.py`):  
 
-3. **Manual inspection score analysis** (`evaluation_scripts/manual_inspection/analyze_manual_inspection_scores.py`) — reads the consolidated 75-sample manual inspection file and computes per-tool score distributions, win/loss/tie counts, and pairwise matchup tables. Outputs `evaluation_data/evaluation_results/manual_inspection/scoring_stats/manual_inspection_statistics_reproduced.tsv` and a `_reproduced_pairwise.tsv` companion.
+    analyses how many Java files each generated patch touches, broken down by approach and outcome. Prints a summary table and writes `evaluation_data/evaluation_results/per_patch/patch_file_count_stats_reproduced.csv`.
 
-4. **Inter-rater agreement** (`evaluation_scripts/manual_inspection/calculate_inter_rater_agreement.py`) — computes Cohen's Kappa across the three reviewer pairs over all scored patches and writes the full report to `evaluation_data/evaluation_results/manual_inspection/scoring_stats/agreement_analysis_reproduced.txt`.
+2. **Manual inspection score analysis** (`evaluation_scripts/manual_inspection/analyze_manual_inspection_scores.py`):  
+
+    **Corresponds to: RQ1-C3**  
+    reads the consolidated 75-sample manual inspection file and computes per-tool score distributions, win/loss/tie counts, and pairwise matchup tables. Outputs `evaluation_data/evaluation_results/manual_inspection/scoring_stats/manual_inspection_statistics_reproduced.tsv` and a `_reproduced_pairwise.tsv` companion.
+
+1. **Inter-rater agreement** (`evaluation_scripts/manual_inspection/calculate_inter_rater_agreement.py`):  
+
+    **Additional analysis for RQ1-C3**  
+    computes Cohen's Kappa across the three reviewer pairs over all scored patches and writes the full report to `evaluation_data/evaluation_results/manual_inspection/scoring_stats/agreement_analysis_reproduced.txt`.
 
 Two additional kinds of figures can be created using Jupyter:
 
-- **Venn diagrams** — open and run `evaluation_scripts/create_venn_diagrams.ipynb`.
-- **Manual inspection score plot** — open and run `evaluation_scripts/manual_inspection/manual_inspection_plot.ipynb`.
+- **Venn diagrams**:  
 
-## 5. Run a large-scale Experiment
+    open and run `evaluation_scripts/create_venn_diagrams.ipynb`.
 
-Follow the installation steps in 1. and then run one of the following commands to run a large-scale experiment on a target project.  
+- **Manual inspection score plot**:  
+
+    **Corresponds to: RQ1-C3 (Figure 7)**  
+    open and run `evaluation_scripts/manual_inspection/manual_inspection_plot.ipynb`.
+
+## 4. Run a Large-Scale Experiment (Reproducing RQ1-C1, RQ1-C2, and RQ2)
+
+Follow the installation steps in 1.3. and then run one of the following commands to run a large-scale experiment on a target project.  
 Run either NullRepair (advanced), the SinglePrompt baseline (basic), or the mini-SWE-agent baseline (agent_baseline).  
-Per default the project is reset for each error (patch-level analysis). Set --combined to stack successful error patches (aggregate-level analysis).  
+Per default the project is reset for each error (patch-level analysis). Set `--combined` to stack successful error patches (aggregate-level analysis).  
 
 The following commands run the experiment on project eureka.  
 
@@ -162,9 +205,9 @@ Run SinglePrompt baseline on project eureka:
 Run mini-SWE-agent baseline on project eureka:  
 ```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode agent_baseline```
 
-List of all projects: conductor, eureka, glide, gson, jadx, libgdx, litiengine, mockito, retrofit, spring-boot, wala-util, zuul
+List of all projects: `conductor`, `eureka`, `glide`, `gson`, `jadx`, `libgdx`, `litiengine`, `mockito`, `retrofit`, `spring-boot`, `wala-util`, `zuul`
 
-Experiments on different projects can be run in parallel. However, multiple experiments on the same project cannot be run simultaneously.  
+Experiments on different projects can be run in parallel (with sufficient memory). However, multiple experiments on the same project cannot be run simultaneously.  
 The logs of each run are stored in a new folder in `evaluation_data/logs` with the name of the project and experiment mode.
 
 If you want to run all experiments on all projects with all three modes and both patch-level and aggregate-level analysis, you can run the following script:  
@@ -175,7 +218,7 @@ python3 run_nullrepair_and_baselines.py
 
 This is very long-running and expensive. We recommend running the experiments in smaller batches.
 
-## 6. Run on Your Own Project
+## 5. Run on Your Own Project
 
 You can run NullRepair on new Java projects.  
 The following instructions assume that the target project uses Gradle.  
@@ -240,18 +283,18 @@ For our example, after line 139 add the following:
 
 ## 7. Customize NullRepair
 
-Key parameters are set in source files and require rebuilding after a change (step 8 of section 6).
+Key parameters are set in source files and require rebuilding after a change (step 8 of section 5).
 
 **LLM model** — edit `modelName` in [Config.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java#204):
 
 If the model pricing is not listed in the MODEL_PRICING map at [ChatGPT.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java#97) yet, add the pricing information to the map.
 Any OpenAI-compatible model name can be used.
 
-**Per-error cost budget** — edit `COST_LIMIT` in [ChatGPT.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java#175):
+**Per-error cost budget** — edit `COST_LIMIT` in [ChatGPT.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java#178):
 
 NullRepair aborts LLM calls for an error once this limit is reached.
 
-To modify the cost limit and cycle limit for the mini-SWE-agent baseline, edit `agentCostLimit` and `agentCycleLimit` in [Config.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java#205-206):
+To modify the cost limit and cycle limit for the mini-SWE-agent baseline, edit `agentCostLimit` and `agentCycleLimit` in [Config.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java#205):
 
 **Analysis depth** — controls how many levels of the call graph are explored when building context. Pass `--depth <n>` on the command line (default: 6):
 
