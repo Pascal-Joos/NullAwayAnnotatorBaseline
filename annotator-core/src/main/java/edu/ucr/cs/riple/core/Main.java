@@ -284,7 +284,8 @@ public class Main {
     try (GitUtility git = GitUtility.instance(config)) {
       git.resetHard();
       if (!config.continueRun) {
-        // In no push mode, we can skip pull and delete remote branch steps, to not need signed-in GitHub user.
+        // In no push mode, we can skip pull and delete remote branch steps, to not need signed-in
+        // GitHub user.
         if (pushCommits) {
           git.safePull();
         }
