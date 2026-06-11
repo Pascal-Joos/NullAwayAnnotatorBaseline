@@ -121,11 +121,11 @@ Pre-computed results are already present in `evaluation_data/evaluation_results/
 python3 reproduce_results.py
 ```
 
+Reproduced output files are written with a `_reproduced` suffix, so they sit alongside the originals without overwriting them.
+
 This script runs the following steps in order:
 
-Reproduced output files are written with a `_reproduced` suffix so they sit alongside the originals without overwriting them.
-
-1. **Evaluation statistics** (`evaluation_scripts/calculate_evaluation_stats.py`) — aggregates per-error metrics (patch generation rate, error resolution rate, failing tests, token usage, cost) for all six experiment configurations (NullRepair / SinglePrompt / mini-SWE-agent × per-patch / combined). Outputs six TSV files to `evaluation_data/evaluation_results/per_patch/` and `evaluation_data/evaluation_results/combined/` with names such as `evaluation_stats_advanced_per_patch_reproduced.tsv`.
+1. **Evaluation statistics** (`evaluation_scripts/calculate_evaluation_stats.py`) — aggregates per-error metrics (total generated patches, total resolved errors, failing tests, token usage, cost) for all six experiment configurations (NullRepair / SinglePrompt / mini-SWE-agent × per-patch / combined). Outputs six TSV files to `evaluation_data/evaluation_results/per_patch/` and `evaluation_data/evaluation_results/combined/` with names such as `evaluation_stats_advanced_per_patch_reproduced.tsv`.
 
 2. **Patch file-count statistics** (`evaluation_scripts/patch_file_count_stats.py`) — analyses how many Java files each generated patch touches, broken down by approach and outcome. Prints a summary table and writes `evaluation_data/evaluation_results/per_patch/patch_file_count_stats_reproduced.csv`.
 
