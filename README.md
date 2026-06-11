@@ -133,12 +133,10 @@ This script runs the following steps in order:
 
 4. **Inter-rater agreement** (`evaluation_scripts/manual_inspection/calculate_inter_rater_agreement.py`) — computes Cohen's Kappa across the three reviewer pairs over all scored patches and writes the full report to `evaluation_data/evaluation_results/manual_inspection/scoring_stats/agreement_analysis_reproduced.txt`.
 
-Two additional figures require Jupyter:
+Two additional kinds of figures can be created using Jupyter:
 
 - **Venn diagrams** — open and run `evaluation_scripts/create_venn_diagrams.ipynb`.
 - **Manual inspection score plot** — open and run `evaluation_scripts/manual_inspection/manual_inspection_plot.ipynb`.
-
-TODO: Test the figure plots
 
 ## 5. Run a large-scale Experiment
 
@@ -239,26 +237,26 @@ It is recommended to first run NullAwayAnnotator without NullRepair on the proje
 
 Key parameters are set in source files and require rebuilding after a change (step 8 of section 6).
 
-**LLM model** — edit `modelName` in `annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java` (line ~204):
-```java
-public String modelName = "openai/gpt-5.1";
-```
-Supported model strings and their pricing are listed in `ChatGPT.java`. The prefix `openai/` is stripped before the API call; any OpenAI-compatible model name can be used.
+**LLM model** — edit `modelName` in [Config.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java#204):
 
-**Per-error cost budget** — edit `COST_LIMIT` in `annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java` (line ~175):
-```java
-private static final double COST_LIMIT = 0.5;  // USD per error
-```
+If the model pricing is not listed in the MODEL_PRICING map at [ChatGPT.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java#97) yet, add the pricing information to the map.
+Any OpenAI-compatible model name can be used.
+
+**Per-error cost budget** — edit `COST_LIMIT` in [ChatGPT.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java#175):
+
 NullRepair aborts LLM calls for an error once this limit is reached.
 
+To modify the cost limit and cycle limit for the mini-SWE-agent baseline, edit `agentCostLimit` and `agentCycleLimit` in [Config.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java#205-206):
+
 **Analysis depth** — controls how many levels of the call graph are explored when building context. Pass `--depth <n>` on the command line (default: 5):
+
 ```bash
 java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --depth 3
 ```
 
 ## 8. Implementation
 
-NullRepair extends NullAwayAnnotator. The main entry point is `annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java`. The three repair modes are implemented in `annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/`:
+NullRepair extends NullAwayAnnotator. The main entry point is [annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java). The three repair modes are implemented in [annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/):
 
 | Class | Mode |
 | --- | --- |
@@ -266,4 +264,4 @@ NullRepair extends NullAwayAnnotator. The main entry point is `annotator-core/sr
 | `BasicNullAwayCodeFix` | `basic` (SinglePrompt baseline) |
 | `AgentBaselineNullAwayCodeFix` | `agent_baseline` (mini-SWE-agent baseline) |
 
-LLM communication is handled by `ChatGPT.java` in the same package. Configuration is managed by `Config.java`.
+LLM communication is handled by [ChatGPT.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/ChatGPT.java) in the same package. Configuration is managed by [Config.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Config.java).
