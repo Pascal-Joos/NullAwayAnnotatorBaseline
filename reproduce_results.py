@@ -52,7 +52,7 @@ def main():
     os.makedirs(SCORING_STATS_DIR, exist_ok=True)
 
     # ── 1. Per-patch and combined evaluation statistics ────────────────────
-    step("1/4  Aggregating evaluation statistics (Table 1 / Table 2)")
+    step("1/4  Aggregating evaluation statistics (Table 2, 3, 4)")
     calc_script = os.path.join(EVAL_SCRIPTS, "calculate_evaluation_stats.py")
     for mode, subdir, combined, out_file in RUNS:
         out_dir = COMBINED_DIR if combined else PER_PATCH_DIR
