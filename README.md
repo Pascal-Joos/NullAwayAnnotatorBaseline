@@ -66,6 +66,9 @@ Token usage - Uncached Prompt: 406, Cached Prompt: 0, Completion: 497, Total: 90
 Cached response
 Finished processing.
 Time taken to fix error: 3713 ms
+
+>>> PROGRESS [======              ] 1 / 3 (33%) <<<
+
 Writing log to file...
 Logging ChatGPT token usage...
 Calculating run metrics...

@@ -512,9 +512,15 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                     long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
                     System.out.println("Time taken to fix error: " + elapsedTimePerError + " ms");
                     int processed = processedCounter.incrementAndGet();
+                    String progressBar =
+                        "=".repeat((int) (processed * 20.0 / effectiveTotal))
+                            + " ".repeat(20 - (int) (processed * 20.0 / effectiveTotal));
                     System.out.printf(
-                        "Progress: %d / %d errors processed (%.0f%%)%n",
-                        processed, effectiveTotal, (processed * 100.0) / effectiveTotal);
+                        "%n>>> PROGRESS [%s] %d / %d (%.0f%%) <<<%n%n",
+                        progressBar,
+                        processed,
+                        effectiveTotal,
+                        (processed * 100.0) / effectiveTotal);
 
                     if (config.actualRunEnabled()) {
                       long currentLineNumber = Utility.getLineCountOfFile(config.logPath);
