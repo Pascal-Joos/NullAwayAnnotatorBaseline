@@ -33,6 +33,8 @@ docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/
 The run command mounts the host's Docker socket into the container and runs the artifact image as root, so the socket is accessible.  
 This is needed to run the mini-SWE-agent baseline experiments, as the agent runs are executed in separate containers.
 
+Jump to section 3. for instructions on attaching VS Code to the running container.
+
 ### 2.2. macOS Systems (Intel and Apple Silicon)
 
 The artifact image was built for `linux/amd64`. On **Apple Silicon** (M1/M2/M3/M4), you must add `--platform linux/amd64` to run it via Rosetta emulation — expect slower execution compared to native hardware.
@@ -68,7 +70,7 @@ docker run --rm -it --platform linux/amd64 --name nullrepair_artifact \
   nullrepair-issta-artifact:latest bash
 ```
 
-
+Jump to section 3. for instructions on attaching VS Code to the running container.
 
 ### 2.3. Windows Systems
 
