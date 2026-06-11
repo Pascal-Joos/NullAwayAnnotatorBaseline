@@ -1,20 +1,20 @@
 # NullRepair Artifact Instructions
 
-## 1. Connecting to the Artifact Container
-
-### 1.1 Requirements
+## 1. Requirements
 
 Technical requirements:
 
-- Operating system: Linux version >= x; MacOS and Windows have not been tested.
-- Installation of Docker. Has been tested on Linux with Docker 29.4.1.
+- Operating system: Linux, MacOs, or Windows. MacOS and Windows have not been tested.
+- Installation of Docker. Has been tested on Linux with Docker 29.5.3.
 - An OpenAI API key. This is needed to run NullRepair and the baselines, which use the OpenAI API. For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
 
 User requirements:
 
 - Familiarity with Docker and Git.
 
-### 1.2 Installation
+## 2. Installation
+
+### 2.1. Linux Systems
 
 Load and run the image:
 
@@ -25,6 +25,64 @@ docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/
 
 The run command mounts the host's Docker socket into the container and runs the artifact image as root, so the socket is accessible.  
 This is needed to run the mini-SWE-agent baseline experiments as the agent runs are executed in separate containers.
+
+### 2.2. macOS Systems (Intel and Apple Silicon)
+
+The artifact image was built for `linux/amd64`. On **Apple Silicon** (M1/M2/M3/M4), you must add `--platform linux/amd64` to run it via Rosetta emulation — expect slower execution compared to native hardware.
+
+On macOS the Docker socket path depends on your Docker Desktop version:
+
+- **Docker Desktop < 4.13**: `/var/run/docker.sock` (same as Linux)
+- **Docker Desktop ≥ 4.13**: `~/.docker/run/docker.sock` (symlink at `/var/run/docker.sock` may or may not exist)
+
+Check which path is available on your machine:
+
+```bash
+ls /var/run/docker.sock 2>/dev/null || echo "not found, use ~/.docker/run/docker.sock"
+```
+
+Load the image:
+
+```bash
+docker load -i nullrepair_artifact_image.tar
+```
+
+Run with the appropriate socket path. Replace `<socket>` with the path found above:
+
+```bash
+# Intel Mac
+docker run --rm -it --name nullrepair_artifact \
+  -v <socket>:/var/run/docker.sock \
+  nullrepair-issta-artifact:latest bash
+
+# Apple Silicon (M1/M2/M3/M4) — adds Rosetta emulation
+docker run --rm -it --platform linux/amd64 --name nullrepair_artifact \
+  -v <socket>:/var/run/docker.sock \
+  nullrepair-issta-artifact:latest bash
+```
+
+If you enabled **"Allow the default Docker socket to be used"** in Docker Desktop settings (*Settings → Advanced*), `/var/run/docker.sock` will always be available, and the socket path is the same as on Linux.
+
+### 2.3. Windows Systems
+
+Running on Windows requires Docker Desktop with **WSL2**.
+
+With the WSL2 backend, Docker Desktop exposes `/var/run/docker.sock` inside your WSL2 distribution, so the same command as Linux works without modification.
+
+Prerequisites:
+
+1. Install WSL2 and a Linux distribution (e.g. Ubuntu) from the Microsoft Store.
+2. In Docker Desktop: *Settings → General* → enable **"Use the WSL 2 based engine"**.
+3. In Docker Desktop: *Settings → Resources → WSL Integration* → enable integration for your distribution.
+
+Then open a WSL2 terminal and run:
+
+```bash
+docker load -i nullrepair_artifact_image.tar
+docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/docker.sock nullrepair-issta-artifact:latest bash
+```
+
+### 3. Attaching VS Code to the Container
 
 You can attach VS Code to the running container using the Dev-Containers extension.  
 In VS Code, open the Command Palette (Ctrl+Shift+P) and select "Dev-Containers: Attach to Running Container..." and choose `nullrepair_artifact`.
