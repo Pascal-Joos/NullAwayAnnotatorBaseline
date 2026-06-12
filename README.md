@@ -53,7 +53,7 @@ For a lightweight reproduction of the experiment results from the log files, the
 
 Run the smoke test to verify that all components are correctly installed and functional.  
 **No OpenAI API key is required.**  
-The test checks Java, the NullRepair JAR, the benchmark projects, the Python packages, and runs the full NullRepair pipeline in disabled mode (static analysis only, no LLM call). It takes roughly 30 seconds.
+The test checks Java, the NullRepair JAR, the benchmark projects, the Python packages, and runs the full NullRepair pipeline in disabled mode (static analysis only, no LLM call). It takes roughly 2 minutes.
 
 ```bash
 python3 smoke_test.py
