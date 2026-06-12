@@ -49,12 +49,78 @@ This is needed to run NullRepair and the baselines, which use the OpenAI API.
 For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
 ```python3 set_openai_key.py```
 
-### 1.4. Quick Run (Smoke Test)
+### 1.4. Smoke Test (Testing the installation)
+
+Run the smoke test to verify that all components are correctly installed and functional.  
+**No OpenAI API key is required.**  
+The test checks Java, the NullRepair JAR, the benchmark projects, the Python packages, and runs the full NullRepair pipeline in disabled mode (static analysis only, no LLM call). It takes roughly 30 seconds.
+
+```bash
+python3 smoke_test.py
+```
+
+Expected output:
+
+```text
+============================================================
+  1/3  Prerequisites
+============================================================
+  [PASS] Java is available
+         (openjdk version "21.0.10" 2026-01-20)
+  [PASS] NullRepair JAR is built
+  [PASS] Benchmark projects are checked out
+
+============================================================
+  2/3  Python evaluation packages
+============================================================
+  [PASS] pandas, numpy, scikit-learn are importable
+
+============================================================
+  3/3  NullRepair end-to-end pipeline (no LLM)
+============================================================
+  Running NullRepair on one error of 'eureka' in disabled mode.
+  Exercises: NullAway static analysis, build, annotation injection,
+  and git integration — no API call is made.
+
+  $ java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode disabled --selectedErrorIds 2 --depth 1
+
+ANNOTATOR VERSION: 3, BUILD: 6
+Received arguments: eureka, --mode, disabled, --selectedErrorIds, 2, --depth, 1
+Running eureka benchmark in disabled mode.
+Resolve remaining errors mode: DISABLED
+Selected error IDs: [2]
+Configuring logging for benchmark: eureka, branch: joos/disabled-3
+Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/disabled-3
+Running on branch name: joos/disabled-3
+Starting annotator...
+Preprocessing...
+Annotating...true
+Max Depth level: 1
+Analyzing at level 1, Scheduling for: 5 builds for: 14 fixes
+
+Processing  20% [============>                                      ] 1/5 (0:00:00 / 0:00:00)
+
+...
+
+Processing 100% [===================================================] 5/5 (0:00:11 / 0:00:00)
+Finished annotating.
+Commiting changes to branch joos/disabled-3...
+
+  [PASS] Pipeline runs end-to-end
+
+============================================================
+  SMOKE TEST PASSED — NullRepair is correctly installed.
+============================================================
+```
+
+### 1.5 Quick Run of NullRepair
+
+**This requires an OpenAI API key** to be set up as described in 1.3., as NullRepair queries the OpenAI API to generate fixes.
 
 A small example run where NullRepair is run on three nullability errors of project eureka can be executed with the following command:  
 ```java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --selectedErrorIds 2,4,5```
 
-Expected console output (truncated):  
+Expected output (truncated):  
 
 ```text
 ANNOTATOR VERSION: 3, BUILD: 6
@@ -188,7 +254,7 @@ Two additional kinds of figures can be created using Jupyter:
     **Corresponds to: RQ1-C3 (Figure 7)**  
     open and run `evaluation_scripts/manual_inspection/manual_inspection_plot.ipynb`.
 
-## 4. Run a Large-Scale Experiment (Reproducing RQ1-C1, RQ1-C2, and RQ2)
+## 4. Run a Large-Scale Experiment (Complete Reproduction of RQ1-C1, RQ1-C2, and RQ2)
 
 Follow the installation steps in 1.3. and then run one of the following commands to run a large-scale experiment on a target project.  
 Run either NullRepair (advanced), the SinglePrompt baseline (basic), or the mini-SWE-agent baseline (agent_baseline).  
@@ -216,7 +282,7 @@ If you want to run all experiments on all projects with all three modes and both
 python3 run_nullrepair_and_baselines.py
 ```
 
-This is very long-running and expensive. We recommend running the experiments in smaller batches.
+This is long-running and expensive (~4 days and 175 USD). We recommend running the experiments in smaller batches, which also allows for parallelization.
 
 ## 5. Run on Your Own Project
 
