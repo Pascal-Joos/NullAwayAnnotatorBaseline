@@ -212,11 +212,11 @@ Venn diagrams showing overlap in resolved errors, resolved errors with no failin
 - `stats_excluding_preliminary_study_projects/` **Corresponds to: Threats to Validity**  
 results with the three preliminary-study projects (conductor, litiengine, retrofit) excluded.
 
-### 2.3. Mapping of stat-file fields to paper tables
+### 2.3. Mapping of paper tables to stat-file fields
 
-The TSV files contain all raw numbers used in the paper. The tables below map each paper column to the corresponding stat-file field so the numbers can be directly verified.
+The TSV files contain all raw numbers used in the paper. The tables below map each paper column to the corresponding stat-file field, so the numbers can be directly verified.
 
-**Table 2 — per-patch mode** (files: `evaluation_results/per_patch/evaluation_stats_<approach>_per_patch_evaluation_gpt5.1.tsv` (separated by approach)):
+**Table 2 — per-patch mode (RQ1-C1)** (files: `evaluation_results/per_patch/evaluation_stats_<approach>_per_patch_evaluation_gpt5.1.tsv` (separated by approach)):
 
 | Paper column | Stat-file field | Notes |
 | --- | --- | --- |
@@ -225,20 +225,36 @@ The TSV files contain all raw numbers used in the paper. The tables below map ea
 | R (resolved, no new errors) | `resolving_patches_and_no_new_errors` | **Not** `resolving_patches_incl_new_errors`, which also counts patches that resolved the target error but introduced a new one |
 | TE (triggered new nullability error) | `trigger_new_error_patches` | |
 
-**Table 2 — combined mode** (files: `evaluation_results/combined/evaluation_stats_<approach>_combined__evaluation_gpt5.1.tsv` (separated by approach)):
+**Table 2 — combined mode (RQ1-C1)** (files: `evaluation_results/combined/evaluation_stats_<approach>_combined__evaluation_gpt5.1.tsv` (separated by approach)):
 
 | Paper column | Stat-file field | Notes |
 | --- | --- | --- |
 | Errors | `total_target_errors` | |
 | R (resolved when selectively applied) | `resolved_target_errors` | = `total_target_errors` − `remaining_errors` |
 
-**Table 3 — test failures in combined mode** (same combined stat files):
+**Table 3 — test failures in combined mode (RQ1-C2)** (same combined stat files):
 
 | Paper column | Stat-file field | Notes |
 | --- | --- | --- |
 | Number of Failing Unit Tests | `total_test_failures` |  |
 
-**Table 4 — efficiency metrics** (files: `evaluation_results/per_patch/evaluation_stats_<approach>_per_patch_evaluation_gpt5.1.tsv` (separated by approach)):
+**RQ1-C3 — manual inspection results:**
+
+Per-approach (tool) score counts and averages come from `evaluation_results/manual_inspection/scoring_stats/manual_inspection_statistics.tsv` (approach names are prefixed with `hash_`):
+
+| Paper text | Stat-file field | Value for NullRepair (`hash_advanced`) |
+| --- | --- | --- |
+| Likely acceptable (score 1) | `Count_Score_1` | 29 (39%) |
+| Needs work (score 2) | `Count_Score_2` | 16 (21%) |
+| Likely unacceptable (score 3) | `Count_Score_3` | 30 (40%) |
+| Average score | `Average_Score` | 2.01 |
+| Overall wins (outperforms both baselines) | `Overall_Wins` | 28 |
+| Overall ties (tied for best with ≥ 1 baseline) | `Overall_Ties` | 26 |
+| Overall losses (outperformed by any baseline) | `Overall_Losses` | 21 |
+
+The `Correctness of Classification` metrics from the paper are based on the column `Correctness of classification by NullRepair` in `evaluation_data/evaluation_results/manual_inspection/manual_inspection_scoring_with_classification.tsv`.
+
+**Table 4 — efficiency metrics (RQ2)** (files: `evaluation_results/per_patch/evaluation_stats_<approach>_per_patch_evaluation_gpt5.1.tsv` (separated by approach)):
 
 The paper reports per-project and per-error averages; the stat files store totals and per-error averages.
 
