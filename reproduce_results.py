@@ -33,11 +33,41 @@ RUNS = [
 ]
 
 
+FAILURES = []
+
+
+def check_environment():
+    """Fail fast if the required third-party packages are missing.
+
+    All steps run with sys.executable, so checking imports here covers the
+    subprocesses too. Missing packages usually mean the virtual environment
+    was not activated.
+    """
+    missing = []
+    for module in ("pandas", "numpy", "sklearn"):
+        try:
+            __import__(module)
+        except ImportError:
+            missing.append(module)
+    if not missing:
+        return
+    print("ERROR: Required Python packages are not available: " + ", ".join(missing))
+    print(f"  (interpreter: {sys.executable})")
+    if sys.prefix == sys.base_prefix:
+        print("  No virtual environment is active. Activate it first:")
+        print("    source .venv/bin/activate")
+    else:
+        print("  Install the project dependencies into this environment:")
+        print("    pip install -e .")
+    sys.exit(1)
+
+
 def run(cmd, cwd=None):
     print(f"  $ {' '.join(str(c) for c in cmd)}")
     result = subprocess.run(cmd, cwd=cwd or ROOT)
     if result.returncode != 0:
         print(f"  [WARNING] Command exited with code {result.returncode}")
+        FAILURES.append(" ".join(str(c) for c in cmd))
 
 
 def step(title):
@@ -47,6 +77,7 @@ def step(title):
 
 
 def main():
+    check_environment()
     os.makedirs(PER_PATCH_DIR, exist_ok=True)
     os.makedirs(COMBINED_DIR, exist_ok=True)
     os.makedirs(SCORING_STATS_DIR, exist_ok=True)
@@ -93,6 +124,13 @@ def main():
 
     # ── Summary ────────────────────────────────────────────────────────────
     print(f"\n{'='*70}")
+    if FAILURES:
+        print(f"  FAILED: {len(FAILURES)} command(s) exited with a non-zero code:")
+        for cmd in FAILURES:
+            print(f"    $ {cmd}")
+        print("  Outputs of the failed steps were NOT (fully) reproduced.")
+        print(f"{'='*70}\n")
+        sys.exit(1)
     print("  Done. Outputs written to evaluation_data/evaluation_results/")
     print()
     print("  Remaining steps requiring Jupyter:")
