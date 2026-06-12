@@ -37,7 +37,9 @@ Jump to section 3. for instructions on attaching VS Code to the running containe
 
 ### 2.2. macOS Systems (Intel and Apple Silicon)
 
-The artifact image was built for `linux/amd64`. On **Apple Silicon** (M1/M2/M3/M4), you must add `--platform linux/amd64` to run it via Rosetta emulation — expect slower execution compared to native hardware.
+The artifact image was built for `linux/amd64`. On **Apple Silicon** (M1/M2/M3/M4), you must add `--platform linux/amd64` to run it under emulation — expect slower execution compared to native hardware.
+
+Docker Desktop emulates amd64 containers either with **Rosetta 2** or with **QEMU**, controlled by *Settings → General → "Use Rosetta for x86_64/amd64 emulation on Apple Silicon"*. **Enable this Rosetta option** (it requires the Virtualization framework option, also under *Settings → General*): it is faster than QEMU, and QEMU emulation is known to break the integrated terminal of VS Code when attached to the container (see Troubleshooting in section 3). Restart Docker Desktop and re-create the container after changing the setting.
 
 On macOS the Docker socket path depends on your Docker Desktop version:
 
@@ -98,3 +100,21 @@ In VS Code, open the Command Palette (Ctrl+Shift+P) and select "Dev-Containers: 
 
 Inside the container, the repository is available at `/home/vscode/NullRepairBaseline`.  
 Refer to the `README.md` (`/home/vscode/NullRepairBaseline/README.md`) inside the container for instructions on finalizing the setup of the environment, running experiments, and evaluating results.
+
+#### Troubleshooting: VS Code terminal fails on Apple Silicon
+
+If the integrated VS Code terminal fails to open with an error like
+
+```text
+The terminal process failed to launch: A native exception occurred during launch
+(TTY initialization failed: uv_tty_init returned EINVAL (invalid argument)).
+```
+
+the container is likely being emulated with QEMU, which cannot run the terminal of the (x86_64) VS Code server. Two options:
+
+1. **Recommended**: Switch the emulation to Rosetta 2 as described in section 2.2, restart Docker Desktop, and re-create the container.
+2. **Workaround**: If it still fails with Rosetta 2, keep using VS Code for editing and browsing files, and run all commands from a native terminal attached to the container instead:
+
+   ```bash
+   docker exec -it nullrepair_artifact bash
+   ```
