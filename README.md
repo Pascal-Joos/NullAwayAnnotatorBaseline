@@ -212,7 +212,7 @@ Venn diagrams showing overlap in resolved errors, resolved errors with no failin
 - `stats_excluding_preliminary_study_projects/` **Corresponds to: Threats to Validity**  
 results with the three preliminary-study projects (conductor, litiengine, retrofit) excluded.
 
-### 2.3. Mapping of paper tables to stat-file fields
+### 2.3. Mapping of paper table metrics to stat-file fields
 
 The TSV files contain all raw numbers used in the paper. The tables below map each paper column to the corresponding stat-file field, so the numbers can be directly verified.
 
@@ -238,7 +238,7 @@ The TSV files contain all raw numbers used in the paper. The tables below map ea
 | --- | --- | --- |
 | Number of Failing Unit Tests | `total_test_failures` |  |
 
-**RQ1-C3 — manual inspection results:**
+**Manual inspection results — (RQ1-C3)**:
 
 Per-approach (tool) score counts and averages come from `evaluation_results/manual_inspection/scoring_stats/manual_inspection_statistics.tsv` (approach names are prefixed with `hash_`):
 
@@ -277,7 +277,7 @@ python3 reproduce_results.py
 
 Reproduced output files are written with a `_reproduced` suffix, so they sit alongside the originals without overwriting them.
 
-Refer to the mapping of stat-file fields to paper tables in section 2.3. to verify the numbers in the paper against the reproduced stat files.
+Refer to the mapping of paper table metrics to stat-file fields in section 2.3. to verify the numbers in the paper against the reproduced stat files.
 
 This script runs the following steps in order:
 
