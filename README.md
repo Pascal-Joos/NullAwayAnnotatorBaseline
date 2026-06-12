@@ -212,6 +212,45 @@ Venn diagrams showing overlap in resolved errors, resolved errors with no failin
 - `stats_excluding_preliminary_study_projects/` **Corresponds to: Threats to Validity**  
 results with the three preliminary-study projects (conductor, litiengine, retrofit) excluded.
 
+### 2.3. Mapping of stat-file fields to paper tables
+
+The TSV files contain all raw numbers used in the paper. The tables below map each paper column to the corresponding stat-file field so the numbers can be directly verified.
+
+**Table 2 — per-patch mode** (files: `evaluation_results/per_patch/evaluation_stats_<approach>_per_patch_evaluation_gpt5.1.tsv` (separated by approach)):
+
+| Paper column | Stat-file field | Notes |
+| --- | --- | --- |
+| Errors | `total_target_errors` | |
+| G (generated, no compile errors) | `generated_patches_no_compilation_errors` | = `generated_patches` − `error_introducing_patches` |
+| R (resolved, no new errors) | `resolving_patches_and_no_new_errors` | **Not** `resolving_patches_incl_new_errors`, which also counts patches that resolved the target error but introduced a new one |
+| TE (triggered new nullability error) | `trigger_new_error_patches` | |
+
+**Table 2 — combined mode** (files: `evaluation_results/combined/evaluation_stats_<approach>_combined__evaluation_gpt5.1.tsv` (separated by approach)):
+
+| Paper column | Stat-file field | Notes |
+| --- | --- | --- |
+| Errors | `total_target_errors` | |
+| R (resolved when selectively applied) | `resolved_target_errors` | = `total_target_errors` − `remaining_errors` |
+
+**Table 3 — test failures in combined mode** (same combined stat files):
+
+| Paper column | Stat-file field | Notes |
+| --- | --- | --- |
+| Number of Failing Unit Tests | `total_test_failures` |  |
+
+**Table 4 — efficiency metrics** (files: `evaluation_results/per_patch/evaluation_stats_<approach>_per_patch_evaluation_gpt5.1.tsv` (separated by approach)):
+
+The paper reports per-project and per-error averages; the stat files store totals and per-error averages.
+
+Refer to the last row of the per-patch stat files for the totals across all projects, and the `avg_` fields for the per-error averages.
+
+| Paper metric | Stat-file field | Conversion |
+| --- | --- | --- |
+| Time (min) (per error) | `avg_execution_time_sec` | ÷ 60 to get minutes |
+| Number of Prompts (per error) | `avg_agent_cycles` | Direct |
+| Total Tokens (k) (per error) | `avg_tokens` | ÷ 1000 |
+| Cost (USD) (per error) | `avg_monetary_cost` | Direct |
+
 ## 3. Reproduce Tables and Figures in the Paper (Short-Hand Reproduction of RQ1 and RQ2)
 
 Pre-computed results are already present in `evaluation_data/evaluation_results/`. To recompute them from the log files, run the single wrapper script from the repository root:
@@ -221,6 +260,8 @@ python3 reproduce_results.py
 ```
 
 Reproduced output files are written with a `_reproduced` suffix, so they sit alongside the originals without overwriting them.
+
+Refer to the mapping of stat-file fields to paper tables in section 2.3. to verify the numbers in the paper against the reproduced stat files.
 
 This script runs the following steps in order:
 
@@ -274,7 +315,9 @@ Run mini-SWE-agent baseline on project eureka:
 List of all projects: `conductor`, `eureka`, `glide`, `gson`, `jadx`, `libgdx`, `litiengine`, `mockito`, `retrofit`, `spring-boot`, `wala-util`, `zuul`
 
 Experiments on different projects can be run in parallel (with sufficient memory). However, multiple experiments on the same project cannot be run simultaneously.  
+
 The logs of each run are stored in a new folder in `evaluation_data/logs` with the name of the project and experiment mode.
+To calculate the aggregated evaluation results from these log files run the individual scripts in `evaluation_scripts` described in section 3., with adapted input and output paths.
 
 If you want to run all experiments on all projects with all three modes and both patch-level and aggregate-level analysis, you can run the following script:  
 
