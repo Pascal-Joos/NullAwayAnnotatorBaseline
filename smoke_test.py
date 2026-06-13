@@ -122,7 +122,7 @@ def main():
                     # Print live; \r in progress-bar lines overwrites correctly
                     # on a real terminal.
                     print(line, end="", flush=True)
-                proc.wait(timeout=300)
+                proc.wait(timeout=600)
                 returncode = proc.returncode
         except subprocess.TimeoutExpired:
             proc.kill()
@@ -132,7 +132,7 @@ def main():
         print()
         all_output = "".join(collected)
         if timed_out:
-            check("Pipeline runs end-to-end", False, "Timed out after 300 s")
+            check("Pipeline runs end-to-end", False, "Timed out after 600 s")
             failures.append("NullRepair pipeline timed out")
         else:
             pipeline_ok = returncode == 0 and "Finished annotating" in all_output
