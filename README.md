@@ -31,7 +31,7 @@ Technical requirements:
 - Disk space: At least 50 GB free to download the artifact, load the Docker image, and run experiments.
 - Memory: At least 8 GB of RAM for running the artifact container and experiments.
 - Installation of Docker. Has been tested on Linux with Docker 29.5.3.
-- An OpenAI API key. This is needed to run NullRepair and the baselines, which use the OpenAI API. For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
+- An OpenAI API key. This is needed to run NullRepair and the baselines, which use the OpenAI API. For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 2. and 3.).  
 
 User requirements:
 
@@ -46,7 +46,7 @@ Inside the docker container, run the following commands to set up the environmen
 
 2. Configure the OpenAI API key by running the script `set_openai_key.py` and pasting the key when prompted. This will write the API key to the mini-SWE-agent configuration file and add it to a .env file.  
 This is needed to run NullRepair and the baselines, which use the OpenAI API.  
-For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 3. and 4.).  
+For a lightweight reproduction of the experiment results from the log files, the API key is not needed (see 2. and 3.).  
 ```python3 set_openai_key.py```
 
 ### 1.4. Smoke Test (Testing the installation)
@@ -406,7 +406,7 @@ For our example, after line 139 add the following:
     java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar jcommander --mode advanced
     ```
 
-## 7. Customize NullRepair
+## 6. Customize NullRepair
 
 Key parameters are set in source files and require rebuilding after a change (step 8 of section 5).
 
@@ -427,7 +427,7 @@ To modify the cost limit and cycle limit for the mini-SWE-agent baseline, edit `
 java -jar annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar eureka --mode advanced --depth 3
 ```
 
-## 8. Implementation
+## 7. Implementation
 
 NullRepair extends NullAwayAnnotator. The main entry point is [annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java](annotator-core/src/main/java/edu/ucr/cs/riple/core/Main.java). The three repair modes are implemented in [annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/](annotator-core/src/main/java/edu/ucr/cs/riple/core/checkers/nullaway/codefix/):
 
