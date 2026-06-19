@@ -27,7 +27,7 @@ Artifact was packaged as an x86_64 Docker image.
 
 Technical requirements:
 
-- Operating system: Linux, MacOS, or Windows. MacOS and Windows have not been tested.
+- Operating system: Linux, MacOS, or Windows. We mainly tested on Linux.
 - Disk space: At least 50 GB free to download the artifact, load the Docker image, and run experiments.
 - Memory: At least 8 GB of RAM for running the artifact container and experiments.
 - Installation of Docker. Has been tested on Linux with Docker 29.5.3.
