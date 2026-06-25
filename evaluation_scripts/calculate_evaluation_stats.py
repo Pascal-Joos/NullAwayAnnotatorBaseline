@@ -488,7 +488,7 @@ def main() -> None:
     parser.add_argument(
         "--log-root",
         type=str,
-        default="/home/vscode/NullRepairBaseline/evaluation_data/logs",
+        default="/home/vscode/NullRepair/evaluation_data/logs",
         help="Root directory containing benchmark subfolders (default: %(default)s)",
     )
     parser.add_argument(

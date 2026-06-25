@@ -61,7 +61,7 @@ public class Main {
 
   public static final int BUILD_VERSION = 6;
 
-  public static final Path ROOT_PATH = Paths.get("/home/vscode/NullRepairBaseline");
+  public static final Path ROOT_PATH = Paths.get("/home/vscode/NullRepair");
 
   public static class Benchmark {
     public final String annotatedPackage;

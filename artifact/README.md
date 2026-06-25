@@ -1,7 +1,7 @@
 # NullRepair Artifact Instructions
 
 This README only explains how to load and connect to the artifact container.  
-For the complete artifact instructions, please refer to the `README.md` inside the container at `/home/vscode/NullRepairBaseline/README.md`, once the container is running.
+For the complete artifact instructions, please refer to the `README.md` inside the container at `/home/vscode/NullRepair/README.md`, once the container is running.
 
 ## 1. Requirements
 
@@ -98,8 +98,8 @@ docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/
 You can attach VS Code to the running container using the Dev-Containers extension.  
 In VS Code, open the Command Palette (Ctrl+Shift+P) and select "Dev-Containers: Attach to Running Container..." and choose `nullrepair_artifact`.
 
-Inside the container, the repository is available at `/home/vscode/NullRepairBaseline`.  
-Refer to the `README.md` (`/home/vscode/NullRepairBaseline/README.md`) inside the container for instructions on finalizing the setup of the environment, running experiments, and evaluating results.
+Inside the container, the repository is available at `/home/vscode/NullRepair`.  
+Refer to the `README.md` (`/home/vscode/NullRepair/README.md`) inside the container for instructions on finalizing the setup of the environment, running experiments, and evaluating results.
 
 #### Troubleshooting: VS Code terminal fails on Apple Silicon
 

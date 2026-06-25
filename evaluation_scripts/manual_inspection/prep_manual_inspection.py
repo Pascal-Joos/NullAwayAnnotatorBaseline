@@ -21,7 +21,7 @@ PROJECTS = [
 
 GITHUB_BASE_URL = "https://github.com/Pascal-Joos/{}/commit/{}"
 
-BENCHMARKS_LOGS = "/home/vscode/NullRepairBaseline/evaluation_data/logs"
+BENCHMARKS_LOGS = "/home/vscode/NullRepair/evaluation_data/logs"
 
 AGENT_BASELINE_VERSION = "agent_baseline-evaluation-run-gpt5.1"
 BASIC_VERSION = "basic-evaluation-run-gpt5.1"
@@ -99,7 +99,7 @@ def main():
             advanced_error = errors[ADVANCED_VERSION][benchmark][e_id]
             agent_baseline_error = errors[AGENT_BASELINE_VERSION][benchmark][e_id]
 
-            absolute_path_part_to_remove = "/home/vscode/NullRepairBaseline/benchmarks/"
+            absolute_path_part_to_remove = "/home/vscode/NullRepair/benchmarks/"
             relative_path = basic_error["path"].replace(absolute_path_part_to_remove, "")
             sample.append({
                 "benchmark": benchmark,

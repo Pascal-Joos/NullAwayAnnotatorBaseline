@@ -50,7 +50,7 @@ docker load -i nullrepair_artifact_image.tar
 docker run --rm -it --name nullrepair_artifact -v /var/run/docker.sock:/var/run/docker.sock nullrepair-issta-artifact:latest bash
 ```
 
-Inside the container, the repository is available at `/home/vscode/NullRepairBaseline` and uses the `root` user.
+Inside the container, the repository is available at `/home/vscode/NullRepair` and uses the `root` user.
 
 ## 2. Quick Run
 
@@ -66,7 +66,7 @@ Running eureka benchmark in advanced mode.
 Resolve remaining errors mode: ADVANCED
 Selected error IDs: [2, 4, 5]
 Configuring logging for benchmark: eureka, branch: joos/advanced-3
-Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/advanced-3
+Root path for logs: /home/vscode/NullRepair/evaluation_data/logs/eureka/advanced-3
 Running on branch name: joos/advanced-3
 Starting annotator...
 Preprocessing...

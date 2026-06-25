@@ -2,7 +2,7 @@
 
 NullRepair is an LLM-based tool that automatically repairs nullability errors reported by [NullAway](https://github.com/uber/NullAway) based on safe usage regions. It is built on top of [NullAwayAnnotator](https://github.com/nimakarimipour/NullAwayAnnotator).
 
-The GitHub repository of NullRepair is available at [https://github.com/Pascal-Joos/NullRepairBaseline](https://github.com/Pascal-Joos/NullRepairBaseline).
+The GitHub repository of NullRepair is available at [https://github.com/Pascal-Joos/NullRepair](https://github.com/Pascal-Joos/NullRepair).
 
 The pre-print is located at [LLM-Based_Repair_of_Static_Nullability_Errors.pdf](LLM-Based_Repair_of_Static_Nullability_Errors.pdf).
 
@@ -90,7 +90,7 @@ Running eureka benchmark in disabled mode.
 Resolve remaining errors mode: DISABLED
 Selected error IDs: [2]
 Configuring logging for benchmark: eureka, branch: joos/disabled-3
-Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/disabled-3
+Root path for logs: /home/vscode/NullRepair/evaluation_data/logs/eureka/disabled-3
 Running on branch name: joos/disabled-3
 Starting annotator...
 Preprocessing...
@@ -129,7 +129,7 @@ Running eureka benchmark in advanced mode.
 Resolve remaining errors mode: ADVANCED
 Selected error IDs: [2, 4, 5]
 Configuring logging for benchmark: eureka, branch: joos/advanced-3
-Root path for logs: /home/vscode/NullRepairBaseline/evaluation_data/logs/eureka/advanced-3
+Root path for logs: /home/vscode/NullRepair/evaluation_data/logs/eureka/advanced-3
 Running on branch name: joos/advanced-3
 Starting annotator...
 Preprocessing...
