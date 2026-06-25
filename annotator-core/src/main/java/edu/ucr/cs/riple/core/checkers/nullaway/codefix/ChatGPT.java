@@ -162,6 +162,9 @@ public class ChatGPT {
 
   public static final Set<String> askedPrompts = new HashSet<>();
 
+  /** Test-only queue of pre-set responses. When non-empty, ask() returns from this queue. */
+  public static final java.util.Deque<Response> TEST_RESPONSE_QUEUE = new java.util.ArrayDeque<>();
+
   /** Cache for the responses from ChatGPT. */
   private final ResponseCache responseCache;
 
@@ -223,6 +226,9 @@ public class ChatGPT {
    * @return the response from ChatGPT.
    */
   public Response ask(String prompt) {
+    if (!TEST_RESPONSE_QUEUE.isEmpty()) {
+      return TEST_RESPONSE_QUEUE.poll();
+    }
     logger.trace("Asking ChatGPT:\n{}", prompt);
     prompt = preprocessPrompt(prompt);
     if (!askedPrompts.contains(ResponseCache.normalize(prompt))) {
@@ -396,11 +402,15 @@ public class ChatGPT {
    * @return the API key.
    */
   private static String retrieveApiKey() {
-
     String openAiApiKey = retrieveAPIKeyFromDotEnv();
 
     if (!openAiApiKey.isEmpty()) {
       return openAiApiKey;
+    }
+
+    openAiApiKey = System.getenv("OPENAI_API_KEY");
+    if (openAiApiKey != null && !openAiApiKey.trim().isEmpty()) {
+      return openAiApiKey.trim();
     }
 
     openAiApiKey = retrieveAPIKeyFromUserInput();

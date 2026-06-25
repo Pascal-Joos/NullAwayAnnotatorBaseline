@@ -32,34 +32,22 @@ import edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT;
 import edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response;
 import org.junit.After;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 
 public class CodeFixTest extends AnnotatorBaseCoreTest {
-
-  MockedStatic<ChatGPT> responseMockedStatic;
 
   public CodeFixTest() {
     super("nullable-multi-modular");
   }
 
   private void mockChatGPTResponse(Response... responses) {
-    //    if (responses == null) {
-    //      throw new IllegalStateException("Mocked Responses are not set");
-    //    }
-    //    MockedStatic<ChatGPT> chatGPTMocked = Mockito.mockStatic(ChatGPT.class);
-    //    OngoingStubbing<ChatGPT> stubbing = chatGPTMocked.when(() ->
-    // ChatGPT.sendRequestToOpenAI(any()));
-    //    for (Response response : responses) {
-    //      stubbing = stubbing.thenAnswer(invocation -> response);
-    //    }
-    //    responseMockedStatic = chatGPTMocked;
+    for (Response response : responses) {
+      ChatGPT.TEST_RESPONSE_QUEUE.offer(response);
+    }
   }
 
   @After
   public void close() {
-    if (responseMockedStatic != null) {
-      responseMockedStatic.close();
-    }
+    ChatGPT.TEST_RESPONSE_QUEUE.clear();
   }
 
   @Test
@@ -143,7 +131,13 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
 
   @Test
   public void dereferenceCastToNonnullTest() {
-    mockChatGPTResponse(disagree());
+    mockChatGPTResponse(
+        disagree(),
+        codeFix(
+            "public String toString(Foo f) {",
+            "    if (f.coll == null) return \"\";",
+            "    return Nullability.castToNonnull(f.coll).toString();",
+            "}"));
     coreTestHelper
         .onTarget()
         .withSourceLines(
@@ -196,7 +190,7 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
 
   @Test
   public void dereferenceFieldInitializedBeforeUseTest() {
-    mockChatGPTResponse(agree());
+    mockChatGPTResponse(agree(), agree());
     coreTestHelper
         .onTarget()
         .withSourceLines(
@@ -339,7 +333,14 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
 
   @Test
   public void dereferenceMethodCallSiteSuppressionTest() {
-    mockChatGPTResponse(agree(), agree(), disagree());
+    mockChatGPTResponse(
+        agree(),
+        agree(),
+        disagree(),
+        codeFix(
+            "public String run(){",
+            "    return Nullability.castToNonnull(exec(\"C\", \"def\")).toString();",
+            "}"));
     coreTestHelper
         .onTarget()
         .withSourceLines(
@@ -369,6 +370,12 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
 
   @Test
   public void assignFieldNullableTest() {
+    mockChatGPTResponse(
+        disagree(),
+        codeFix(
+            "public String exec1(){",
+            "    return Nullability.castToNonnull(foo).toString();",
+            "}"));
     coreTestHelper
         .onTarget()
         .withSourceLines(
@@ -389,12 +396,6 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
             "       foo = new Object();",
             "     }",
             "     public String exec1(){",
-            "       return foo.toString();",
-            "     }",
-            "     public String exec2(){",
-            "       return foo.toString();",
-            "     }",
-            "     public String exec3(){",
             "       return foo.toString();",
             "     }",
             "     public String exec4(){",
@@ -440,6 +441,7 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
 
   @Test
   public void uninitializedFieldTest() {
+    mockChatGPTResponse(agree());
     coreTestHelper
         .onTarget()
         .withSourceLines(
@@ -544,6 +546,7 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
 
   @Test
   public void nullableMethodReturnFixUsingBasicPrompt() {
+    mockChatGPTResponse(codeFix("Object getF1(){", "    return new Object();", "}"));
     coreTestHelper
         .onTarget()
         .withSourceLines(
@@ -565,6 +568,7 @@ public class CodeFixTest extends AnnotatorBaseCoreTest {
 
   @Test
   public void remainingResolveTest() {
+    mockChatGPTResponse(agree(), codeFix("void run(Foo foo) {", "    int i = 0;", "}"));
     coreTestHelper
         .onTarget()
         .withSourceLines(

@@ -400,6 +400,15 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
 
     codeFix.collectImpacts();
     AtomicInteger counter = new AtomicInteger(0);
+    AtomicInteger processedCounter = new AtomicInteger(0);
+    int effectiveTotal;
+    if (config.selectedErrorIdsProvided) {
+      effectiveTotal = config.selectedErrorIds.size();
+    } else if (config.continueRun) {
+      effectiveTotal = remainingErrors.size() - config.continueRunAtError + 1;
+    } else {
+      effectiveTotal = remainingErrors.size();
+    }
     // Collect regions with remaining errors.
     logger.trace("Resolving remaining errors: {} errors.", remainingErrors.size());
     // related to log
@@ -430,6 +439,13 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                     if (config.continueRun && counter.get() < config.continueRunAtError) {
                       logger.trace(
                           "{} : SKIPPING ERROR DUE TO CONTINUE RUN FLAG: {}", counter.get(), error);
+                      return;
+                    } else if (config.selectedErrorIdsProvided
+                        && !config.selectedErrorIds.contains(counter.get())) {
+                      logger.trace(
+                          "{} : SKIPPING ERROR DUE TO SELECTED ERROR IDS: {}",
+                          counter.get(),
+                          error);
                       return;
                     }
 
@@ -495,6 +511,16 @@ public class NullAway extends CheckerBaseClass<NullAwayError> {
                     // Log time taken, excluding committing the changes and calculating metrics.
                     long elapsedTimePerError = System.currentTimeMillis() - timerPerError;
                     System.out.println("Time taken to fix error: " + elapsedTimePerError + " ms");
+                    int processed = processedCounter.incrementAndGet();
+                    String progressBar =
+                        "=".repeat((int) (processed * 20.0 / effectiveTotal))
+                            + " ".repeat(20 - (int) (processed * 20.0 / effectiveTotal));
+                    System.out.printf(
+                        "%n>>> PROGRESS [%s] %d / %d (%.0f%%) <<<%n%n",
+                        progressBar,
+                        processed,
+                        effectiveTotal,
+                        (processed * 100.0) / effectiveTotal);
 
                     if (config.actualRunEnabled()) {
                       long currentLineNumber = Utility.getLineCountOfFile(config.logPath);

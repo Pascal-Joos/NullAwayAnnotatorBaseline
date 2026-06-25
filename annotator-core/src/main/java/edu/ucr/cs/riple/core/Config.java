@@ -40,6 +40,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -155,6 +156,10 @@ public class Config {
 
   public int continueRunAtError;
 
+  public boolean selectedErrorIdsProvided;
+
+  public List<Integer> selectedErrorIds;
+
   /**
    * Activates inference to add {@code @Nullable} qualifiers.
    *
@@ -201,7 +206,7 @@ public class Config {
   public int agentCycleLimit = 50;
 
   public String branchName() {
-    return (String.format("nimak/agentic-%s-%s", resolveRemainingErrorMode.name(), Main.VERSION)
+    return (String.format("joos/%s-%s", resolveRemainingErrorMode.name(), Main.VERSION)
             + (Main.DEBUG_MODE ? "-debug" : "")
             + (combined ? "-combined" : ""))
         .toLowerCase(Locale.getDefault());
@@ -560,6 +565,15 @@ public class Config {
             "Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.");
     options.addOption(pushCommitsOption);
 
+    Option selectedErrorIdsOption =
+        new Option(
+            "s",
+            "selectedErrorIds",
+            true,
+            "Comma-separated list of error IDs to fix. If provided, only the errors with these IDs will be fixed. Cannot be combined with --continueRunAtError.");
+    selectedErrorIdsOption.setRequired(false);
+    options.addOption(selectedErrorIdsOption);
+
     HelpFormatter formatter = new HelpFormatter();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
@@ -673,6 +687,22 @@ public class Config {
     this.continueRunAtError =
         this.continueRun ? Integer.parseInt(cmd.getOptionValue(continueRunAtErrOption)) : -1;
     this.pushCommits = cmd.hasOption(pushCommitsOption);
+
+    this.selectedErrorIdsProvided = cmd.hasOption(selectedErrorIdsOption);
+    this.selectedErrorIds = new ArrayList<>();
+    if (selectedErrorIdsProvided) {
+      String[] ids = cmd.getOptionValue(selectedErrorIdsOption).split(",");
+      for (String id : ids) {
+        try {
+          selectedErrorIds.add(Integer.parseInt(id));
+        } catch (NumberFormatException e) {
+          System.err.println("Error: Invalid error ID: " + id);
+          System.exit(1);
+          return;
+        }
+      }
+      System.out.println("Selected error IDs: " + selectedErrorIds);
+    }
   }
 
   /**

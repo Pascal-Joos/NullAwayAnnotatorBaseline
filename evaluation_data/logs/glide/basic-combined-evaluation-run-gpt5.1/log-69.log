@@ -1,0 +1,847 @@
+====================
+Type='DEREFERENCE_NULLABLE', message='dereferenced expression downsampleStrategy is @Nullable'
+/home/vscode/nullness-benchmarks/glide/library/src/main/java/com/bumptech/glide/load/resource/bitmap/Downsampler.java:508
+        downsampleStrategy.getScaleFactor(
+Log:
+12:34:08.561 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.commitChanges
+Patch reduced errors from 34 to 33, committing.
+12:34:12.797 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+==============================
+12:34:12.797 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.COUNT = 1
+12:34:12.797 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT.PROMPTS SIZE = 1
+12:34:12.797 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+CHATGPT TOKENS USAGE: Token usage - Uncached Prompt: 0, Cached Prompt: 0, Completion: 0, Total: 0
+12:34:12.797 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+ChatGPT usage reset
+12:34:12.798 TRACE edu.ucr.cs.riple.core.checkers.nullaway.NullAway.lambda$resolveRemainingErrors$18
+69 : TOP LEVEL CALL TO FIX ERROR: Type='DEREFERENCE_NULLABLE', message='dereferenced expression downsampleStrategy is @Nullable'
+/home/vscode/nullness-benchmarks/glide/library/src/main/java/com/bumptech/glide/load/resource/bitmap/Downsampler.java:508
+        downsampleStrategy.getScaleFactor(
+12:34:17.016 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Asking ChatGPT:
+Resolve a NullAway warning in the code below.
+
+**Error Type:** DEREFERENCE_NULLABLE
+**Full Error Message:** dereferenced expression downsampleStrategy is @Nullable
+**Error Line:**         downsampleStrategy.getScaleFactor(
+
+**Location:** the method: calculateScaling(com.bumptech.glide.load.ImageHeaderParser.ImageType,com.bumptech.glide.load.resource.bitmap.ImageReader,com.bumptech.glide.load.resource.bitmap.Downsampler.DecodeCallbacks,com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool,com.bumptech.glide.load.resource.bitmap.DownsampleStrategy,int,int,int,int,int,android.graphics.BitmapFactory.Options)
+
+**Code Context:**
+```java
+private static void calculateScaling(
+      ImageType imageType,
+      ImageReader imageReader,
+      DecodeCallbacks decodeCallbacks,
+      BitmapPool bitmapPool,
+      @Nullable DownsampleStrategy downsampleStrategy,
+      int degreesToRotate,
+      int sourceWidth,
+      int sourceHeight,
+      int targetWidth,
+      int targetHeight,
+      BitmapFactory.Options options)
+      throws IOException {
+    // We can't downsample source content if we can't determine its dimensions.
+    if (sourceWidth <= 0 || sourceHeight <= 0) {
+      if (Log.isLoggable(TAG, Log.DEBUG)) {
+        Log.d(
+            TAG,
+            "Unable to determine dimensions for: "
+                + imageType
+                + " with target ["
+                + targetWidth
+                + "x"
+                + targetHeight
+                + "]");
+      }
+      return;
+    }
+
+    int orientedSourceWidth = sourceWidth;
+    int orientedSourceHeight = sourceHeight;
+    // If we're rotating the image +-90 degrees, we need to downsample accordingly so the image
+    // width is decreased to near our target's height and the image height is decreased to near
+    // our target width.
+    //noinspection SuspiciousNameCombination
+    if (isRotationRequired(degreesToRotate)) {
+      orientedSourceWidth = sourceHeight;
+      orientedSourceHeight = sourceWidth;
+    }
+
+    final float exactScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+
+    if (exactScaleFactor <= 0f) {
+      throw new IllegalArgumentException(
+          "Cannot scale with factor: "
+              + exactScaleFactor
+              + " from: "
+              + downsampleStrategy
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]");
+    }
+
+    SampleSizeRounding rounding =
+        downsampleStrategy.getSampleSizeRounding(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+    if (rounding == null) {
+      throw new IllegalArgumentException("Cannot round with null rounding");
+    }
+
+    int outWidth = round(exactScaleFactor * orientedSourceWidth);
+    int outHeight = round(exactScaleFactor * orientedSourceHeight);
+
+    int widthScaleFactor = orientedSourceWidth / outWidth;
+    int heightScaleFactor = orientedSourceHeight / outHeight;
+
+    // TODO: This isn't really right for both CenterOutside and CenterInside. Consider allowing
+    // DownsampleStrategy to pick, or trying to do something more sophisticated like picking the
+    // scale factor that leads to an exact match.
+    int scaleFactor =
+        rounding == SampleSizeRounding.MEMORY
+            ? Math.max(widthScaleFactor, heightScaleFactor)
+            : Math.min(widthScaleFactor, heightScaleFactor);
+
+    int powerOfTwoSampleSize;
+    // BitmapFactory does not support downsampling wbmp files on platforms <= M. See b/27305903.
+    if (Build.VERSION.SDK_INT <= 23
+        && NO_DOWNSAMPLE_PRE_N_MIME_TYPES.contains(options.outMimeType)) {
+      powerOfTwoSampleSize = 1;
+    } else {
+      powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));
+      if (rounding == SampleSizeRounding.MEMORY
+          && powerOfTwoSampleSize < (1.f / exactScaleFactor)) {
+        powerOfTwoSampleSize = powerOfTwoSampleSize << 1;
+      }
+    }
+
+    // Here we mimic framework logic for determining how inSampleSize division is rounded on various
+    // versions of Android. The logic here has been tested on emulators for Android versions 15-26.
+    // PNG - Always uses floor
+    // JPEG - Always uses ceiling
+    // Webp - Prior to N, always uses floor. At and after N, always uses round.
+    options.inSampleSize = powerOfTwoSampleSize;
+    int powerOfTwoWidth;
+    int powerOfTwoHeight;
+    if (imageType == ImageType.JPEG) {
+      // libjpegturbo can downsample up to a sample size of 8. libjpegturbo uses ceiling to round.
+      // After libjpegturbo's native rounding, skia does a secondary scale using floor
+      // (integer division). Here we replicate that logic.
+      int nativeScaling = Math.min(powerOfTwoSampleSize, 8);
+      powerOfTwoWidth = (int) Math.ceil(orientedSourceWidth / (float) nativeScaling);
+      powerOfTwoHeight = (int) Math.ceil(orientedSourceHeight / (float) nativeScaling);
+      int secondaryScaling = powerOfTwoSampleSize / 8;
+      if (secondaryScaling > 0) {
+        powerOfTwoWidth = powerOfTwoWidth / secondaryScaling;
+        powerOfTwoHeight = powerOfTwoHeight / secondaryScaling;
+      }
+    } else if (imageType == ImageType.PNG || imageType == ImageType.PNG_A) {
+      powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+      powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+    } else if (imageType.isWebp()) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        powerOfTwoWidth = Math.round(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = Math.round(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      } else {
+        powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      }
+    } else if (orientedSourceWidth % powerOfTwoSampleSize != 0
+        || orientedSourceHeight % powerOfTwoSampleSize != 0) {
+      // If we're not confident the image is in one of our types, fall back to checking the
+      // dimensions again. inJustDecodeBounds decodes do obey inSampleSize.
+      int[] dimensions = getDimensions(imageReader, options, decodeCallbacks, bitmapPool);
+      // Power of two downsampling in BitmapFactory uses a variety of random factors to determine
+      // rounding that we can't reliably replicate for all image formats. Use ceiling here to make
+      // sure that we at least provide a Bitmap that's large enough to fit the content we're going
+      // to load.
+      powerOfTwoWidth = dimensions[0];
+      powerOfTwoHeight = dimensions[1];
+    } else {
+      powerOfTwoWidth = orientedSourceWidth / powerOfTwoSampleSize;
+      powerOfTwoHeight = orientedSourceHeight / powerOfTwoSampleSize;
+    }
+
+    double adjustedScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            powerOfTwoWidth, powerOfTwoHeight, targetWidth, targetHeight);
+
+    // Density scaling is only supported if inBitmap is null prior to KitKat. Avoid setting
+    // densities here so we calculate the final Bitmap size correctly.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      options.inTargetDensity = adjustTargetDensityForError(adjustedScaleFactor);
+      options.inDensity = getDensityMultiplier(adjustedScaleFactor);
+    }
+    if (isScaling(options)) {
+      options.inScaled = true;
+    } else {
+      options.inDensity = options.inTargetDensity = 0;
+    }
+
+    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+      Log.v(
+          TAG,
+          "Calculate scaling"
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", degreesToRotate: "
+              + degreesToRotate
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]"
+              + ", power of two scaled: ["
+              + powerOfTwoWidth
+              + "x"
+              + powerOfTwoHeight
+              + "]"
+              + ", exact scale factor: "
+              + exactScaleFactor
+              + ", power of 2 sample size: "
+              + powerOfTwoSampleSize
+              + ", adjusted scale factor: "
+              + adjustedScaleFactor
+              + ", target density: "
+              + options.inTargetDensity
+              + ", density: "
+              + options.inDensity);
+    }
+}
+```
+
+Provide the fixed code snippet for "calculateScaling(com.bumptech.glide.load.ImageHeaderParser.ImageType,com.bumptech.glide.load.resource.bitmap.ImageReader,com.bumptech.glide.load.resource.bitmap.Downsampler.DecodeCallbacks,com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool,com.bumptech.glide.load.resource.bitmap.DownsampleStrategy,int,int,int,int,int,android.graphics.BitmapFactory.Options)" in XML format.
+
+### Requirements:
+- Do not import any additional libraries or classes
+- Do not add Java comments, but also do not remove any preexisting comments.
+- Only modify relevant lines as required
+- Do not address any other issues
+- Return only the modified method
+
+### Response Format:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  Your fixed code snippet here
+  ```
+    ]]>
+  </code>
+</response>
+
+12:34:17.017 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.ChatGPT.ask
+Retrieving response from cache
+12:34:17.017 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.tryCreate
+Trying to create Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  private static void calculateScaling(
+      ImageType imageType,
+      ImageReader imageReader,
+      DecodeCallbacks decodeCallbacks,
+      BitmapPool bitmapPool,
+      @NonNull DownsampleStrategy downsampleStrategy,
+      int degreesToRotate,
+      int sourceWidth,
+      int sourceHeight,
+      int targetWidth,
+      int targetHeight,
+      BitmapFactory.Options options)
+      throws IOException {
+    // We can't downsample source content if we can't determine its dimensions.
+    if (sourceWidth <= 0 || sourceHeight <= 0) {
+      if (Log.isLoggable(TAG, Log.DEBUG)) {
+        Log.d(
+            TAG,
+            "Unable to determine dimensions for: "
+                + imageType
+                + " with target ["
+                + targetWidth
+                + "x"
+                + targetHeight
+                + "]");
+      }
+      return;
+    }
+
+    int orientedSourceWidth = sourceWidth;
+    int orientedSourceHeight = sourceHeight;
+    // If we're rotating the image +-90 degrees, we need to downsample accordingly so the image
+    // width is decreased to near our target's height and the image height is decreased to near
+    // our target width.
+    //noinspection SuspiciousNameCombination
+    if (isRotationRequired(degreesToRotate)) {
+      orientedSourceWidth = sourceHeight;
+      orientedSourceHeight = sourceWidth;
+    }
+
+    final float exactScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+
+    if (exactScaleFactor <= 0f) {
+      throw new IllegalArgumentException(
+          "Cannot scale with factor: "
+              + exactScaleFactor
+              + " from: "
+              + downsampleStrategy
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]");
+    }
+
+    SampleSizeRounding rounding =
+        downsampleStrategy.getSampleSizeRounding(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+    if (rounding == null) {
+      throw new IllegalArgumentException("Cannot round with null rounding");
+    }
+
+    int outWidth = round(exactScaleFactor * orientedSourceWidth);
+    int outHeight = round(exactScaleFactor * orientedSourceHeight);
+
+    int widthScaleFactor = orientedSourceWidth / outWidth;
+    int heightScaleFactor = orientedSourceHeight / outHeight;
+
+    // TODO: This isn't really right for both CenterOutside and CenterInside. Consider allowing
+    // DownsampleStrategy to pick, or trying to do something more sophisticated like picking the
+    // scale factor that leads to an exact match.
+    int scaleFactor =
+        rounding == SampleSizeRounding.MEMORY
+            ? Math.max(widthScaleFactor, heightScaleFactor)
+            : Math.min(widthScaleFactor, heightScaleFactor);
+
+    int powerOfTwoSampleSize;
+    // BitmapFactory does not support downsampling wbmp files on platforms <= M. See b/27305903.
+    if (Build.VERSION.SDK_INT <= 23
+        && NO_DOWNSAMPLE_PRE_N_MIME_TYPES.contains(options.outMimeType)) {
+      powerOfTwoSampleSize = 1;
+    } else {
+      powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));
+      if (rounding == SampleSizeRounding.MEMORY
+          && powerOfTwoSampleSize < (1.f / exactScaleFactor)) {
+        powerOfTwoSampleSize = powerOfTwoSampleSize << 1;
+      }
+    }
+
+    // Here we mimic framework logic for determining how inSampleSize division is rounded on various
+    // versions of Android. The logic here has been tested on emulators for Android versions 15-26.
+    // PNG - Always uses floor
+    // JPEG - Always uses ceiling
+    // Webp - Prior to N, always uses floor. At and after N, always uses round.
+    options.inSampleSize = powerOfTwoSampleSize;
+    int powerOfTwoWidth;
+    int powerOfTwoHeight;
+    if (imageType == ImageType.JPEG) {
+      // libjpegturbo can downsample up to a sample size of 8. libjpegturbo uses ceiling to round.
+      // After libjpegturbo's native rounding, skia does a secondary scale using floor
+      // (integer division). Here we replicate that logic.
+      int nativeScaling = Math.min(powerOfTwoSampleSize, 8);
+      powerOfTwoWidth = (int) Math.ceil(orientedSourceWidth / (float) nativeScaling);
+      powerOfTwoHeight = (int) Math.ceil(orientedSourceHeight / (float) nativeScaling);
+      int secondaryScaling = powerOfTwoSampleSize / 8;
+      if (secondaryScaling > 0) {
+        powerOfTwoWidth = powerOfTwoWidth / secondaryScaling;
+        powerOfTwoHeight = powerOfTwoHeight / secondaryScaling;
+      }
+    } else if (imageType == ImageType.PNG || imageType == ImageType.PNG_A) {
+      powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+      powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+    } else if (imageType.isWebp()) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        powerOfTwoWidth = Math.round(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = Math.round(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      } else {
+        powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      }
+    } else if (orientedSourceWidth % powerOfTwoSampleSize != 0
+        || orientedSourceHeight % powerOfTwoSampleSize != 0) {
+      // If we're not confident the image is in one of our types, fall back to checking the
+      // dimensions again. inJustDecodeBounds decodes do obey inSampleSize.
+      int[] dimensions = getDimensions(imageReader, options, decodeCallbacks, bitmapPool);
+      // Power of two downsampling in BitmapFactory uses a variety of random factors to determine
+      // rounding that we can't reliably replicate for all image formats. Use ceiling here to make
+      // sure that we at least provide a Bitmap that's large enough to fit the content we're going
+      // to load.
+      powerOfTwoWidth = dimensions[0];
+      powerOfTwoHeight = dimensions[1];
+    } else {
+      powerOfTwoWidth = orientedSourceWidth / powerOfTwoSampleSize;
+      powerOfTwoHeight = orientedSourceHeight / powerOfTwoSampleSize;
+    }
+
+    double adjustedScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            powerOfTwoWidth, powerOfTwoHeight, targetWidth, targetHeight);
+
+    // Density scaling is only supported if inBitmap is null prior to KitKat. Avoid setting
+    // densities here so we calculate the final Bitmap size correctly.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      options.inTargetDensity = adjustTargetDensityForError(adjustedScaleFactor);
+      options.inDensity = getDensityMultiplier(adjustedScaleFactor);
+    }
+    if (isScaling(options)) {
+      options.inScaled = true;
+    } else {
+      options.inDensity = options.inTargetDensity = 0;
+    }
+
+    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+      Log.v(
+          TAG,
+          "Calculate scaling"
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", degreesToRotate: "
+              + degreesToRotate
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]"
+              + ", power of two scaled: ["
+              + powerOfTwoWidth
+              + "x"
+              + powerOfTwoHeight
+              + "]"
+              + ", exact scale factor: "
+              + exactScaleFactor
+              + ", power of 2 sample size: "
+              + powerOfTwoSampleSize
+              + ", adjusted scale factor: "
+              + adjustedScaleFactor
+              + ", target density: "
+              + options.inTargetDensity
+              + ", density: "
+              + options.inDensity);
+    }
+  }
+  ```
+    ]]>
+  </code>
+</response>
+12:34:17.022 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Creating Response:
+<response>
+  <success>true</success>
+  <code><![CDATA[
+  ```java
+  private static void calculateScaling(
+      ImageType imageType,
+      ImageReader imageReader,
+      DecodeCallbacks decodeCallbacks,
+      BitmapPool bitmapPool,
+      @NonNull DownsampleStrategy downsampleStrategy,
+      int degreesToRotate,
+      int sourceWidth,
+      int sourceHeight,
+      int targetWidth,
+      int targetHeight,
+      BitmapFactory.Options options)
+      throws IOException {
+    // We can't downsample source content if we can't determine its dimensions.
+    if (sourceWidth <= 0 || sourceHeight <= 0) {
+      if (Log.isLoggable(TAG, Log.DEBUG)) {
+        Log.d(
+            TAG,
+            "Unable to determine dimensions for: "
+                + imageType
+                + " with target ["
+                + targetWidth
+                + "x"
+                + targetHeight
+                + "]");
+      }
+      return;
+    }
+
+    int orientedSourceWidth = sourceWidth;
+    int orientedSourceHeight = sourceHeight;
+    // If we're rotating the image +-90 degrees, we need to downsample accordingly so the image
+    // width is decreased to near our target's height and the image height is decreased to near
+    // our target width.
+    //noinspection SuspiciousNameCombination
+    if (isRotationRequired(degreesToRotate)) {
+      orientedSourceWidth = sourceHeight;
+      orientedSourceHeight = sourceWidth;
+    }
+
+    final float exactScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+
+    if (exactScaleFactor <= 0f) {
+      throw new IllegalArgumentException(
+          "Cannot scale with factor: "
+              + exactScaleFactor
+              + " from: "
+              + downsampleStrategy
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]");
+    }
+
+    SampleSizeRounding rounding =
+        downsampleStrategy.getSampleSizeRounding(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+    if (rounding == null) {
+      throw new IllegalArgumentException("Cannot round with null rounding");
+    }
+
+    int outWidth = round(exactScaleFactor * orientedSourceWidth);
+    int outHeight = round(exactScaleFactor * orientedSourceHeight);
+
+    int widthScaleFactor = orientedSourceWidth / outWidth;
+    int heightScaleFactor = orientedSourceHeight / outHeight;
+
+    // TODO: This isn't really right for both CenterOutside and CenterInside. Consider allowing
+    // DownsampleStrategy to pick, or trying to do something more sophisticated like picking the
+    // scale factor that leads to an exact match.
+    int scaleFactor =
+        rounding == SampleSizeRounding.MEMORY
+            ? Math.max(widthScaleFactor, heightScaleFactor)
+            : Math.min(widthScaleFactor, heightScaleFactor);
+
+    int powerOfTwoSampleSize;
+    // BitmapFactory does not support downsampling wbmp files on platforms <= M. See b/27305903.
+    if (Build.VERSION.SDK_INT <= 23
+        && NO_DOWNSAMPLE_PRE_N_MIME_TYPES.contains(options.outMimeType)) {
+      powerOfTwoSampleSize = 1;
+    } else {
+      powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));
+      if (rounding == SampleSizeRounding.MEMORY
+          && powerOfTwoSampleSize < (1.f / exactScaleFactor)) {
+        powerOfTwoSampleSize = powerOfTwoSampleSize << 1;
+      }
+    }
+
+    // Here we mimic framework logic for determining how inSampleSize division is rounded on various
+    // versions of Android. The logic here has been tested on emulators for Android versions 15-26.
+    // PNG - Always uses floor
+    // JPEG - Always uses ceiling
+    // Webp - Prior to N, always uses floor. At and after N, always uses round.
+    options.inSampleSize = powerOfTwoSampleSize;
+    int powerOfTwoWidth;
+    int powerOfTwoHeight;
+    if (imageType == ImageType.JPEG) {
+      // libjpegturbo can downsample up to a sample size of 8. libjpegturbo uses ceiling to round.
+      // After libjpegturbo's native rounding, skia does a secondary scale using floor
+      // (integer division). Here we replicate that logic.
+      int nativeScaling = Math.min(powerOfTwoSampleSize, 8);
+      powerOfTwoWidth = (int) Math.ceil(orientedSourceWidth / (float) nativeScaling);
+      powerOfTwoHeight = (int) Math.ceil(orientedSourceHeight / (float) nativeScaling);
+      int secondaryScaling = powerOfTwoSampleSize / 8;
+      if (secondaryScaling > 0) {
+        powerOfTwoWidth = powerOfTwoWidth / secondaryScaling;
+        powerOfTwoHeight = powerOfTwoHeight / secondaryScaling;
+      }
+    } else if (imageType == ImageType.PNG || imageType == ImageType.PNG_A) {
+      powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+      powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+    } else if (imageType.isWebp()) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        powerOfTwoWidth = Math.round(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = Math.round(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      } else {
+        powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      }
+    } else if (orientedSourceWidth % powerOfTwoSampleSize != 0
+        || orientedSourceHeight % powerOfTwoSampleSize != 0) {
+      // If we're not confident the image is in one of our types, fall back to checking the
+      // dimensions again. inJustDecodeBounds decodes do obey inSampleSize.
+      int[] dimensions = getDimensions(imageReader, options, decodeCallbacks, bitmapPool);
+      // Power of two downsampling in BitmapFactory uses a variety of random factors to determine
+      // rounding that we can't reliably replicate for all image formats. Use ceiling here to make
+      // sure that we at least provide a Bitmap that's large enough to fit the content we're going
+      // to load.
+      powerOfTwoWidth = dimensions[0];
+      powerOfTwoHeight = dimensions[1];
+    } else {
+      powerOfTwoWidth = orientedSourceWidth / powerOfTwoSampleSize;
+      powerOfTwoHeight = orientedSourceHeight / powerOfTwoSampleSize;
+    }
+
+    double adjustedScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            powerOfTwoWidth, powerOfTwoHeight, targetWidth, targetHeight);
+
+    // Density scaling is only supported if inBitmap is null prior to KitKat. Avoid setting
+    // densities here so we calculate the final Bitmap size correctly.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      options.inTargetDensity = adjustTargetDensityForError(adjustedScaleFactor);
+      options.inDensity = getDensityMultiplier(adjustedScaleFactor);
+    }
+    if (isScaling(options)) {
+      options.inScaled = true;
+    } else {
+      options.inDensity = options.inTargetDensity = 0;
+    }
+
+    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+      Log.v(
+          TAG,
+          "Calculate scaling"
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", degreesToRotate: "
+              + degreesToRotate
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]"
+              + ", power of two scaled: ["
+              + powerOfTwoWidth
+              + "x"
+              + powerOfTwoHeight
+              + "]"
+              + ", exact scale factor: "
+              + exactScaleFactor
+              + ", power of 2 sample size: "
+              + powerOfTwoSampleSize
+              + ", adjusted scale factor: "
+              + adjustedScaleFactor
+              + ", target density: "
+              + options.inTargetDensity
+              + ", density: "
+              + options.inDensity);
+    }
+  }
+  ```
+    ]]>
+  </code>
+</response>
+12:34:17.024 TRACE edu.ucr.cs.riple.core.checkers.nullaway.codefix.Response.<init>
+Response created:
+private static void calculateScaling(
+      ImageType imageType,
+      ImageReader imageReader,
+      DecodeCallbacks decodeCallbacks,
+      BitmapPool bitmapPool,
+      @NonNull DownsampleStrategy downsampleStrategy,
+      int degreesToRotate,
+      int sourceWidth,
+      int sourceHeight,
+      int targetWidth,
+      int targetHeight,
+      BitmapFactory.Options options)
+      throws IOException {
+    // We can't downsample source content if we can't determine its dimensions.
+    if (sourceWidth <= 0 || sourceHeight <= 0) {
+      if (Log.isLoggable(TAG, Log.DEBUG)) {
+        Log.d(
+            TAG,
+            "Unable to determine dimensions for: "
+                + imageType
+                + " with target ["
+                + targetWidth
+                + "x"
+                + targetHeight
+                + "]");
+      }
+      return;
+    }
+
+    int orientedSourceWidth = sourceWidth;
+    int orientedSourceHeight = sourceHeight;
+    // If we're rotating the image +-90 degrees, we need to downsample accordingly so the image
+    // width is decreased to near our target's height and the image height is decreased to near
+    // our target width.
+    //noinspection SuspiciousNameCombination
+    if (isRotationRequired(degreesToRotate)) {
+      orientedSourceWidth = sourceHeight;
+      orientedSourceHeight = sourceWidth;
+    }
+
+    final float exactScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+
+    if (exactScaleFactor <= 0f) {
+      throw new IllegalArgumentException(
+          "Cannot scale with factor: "
+              + exactScaleFactor
+              + " from: "
+              + downsampleStrategy
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]");
+    }
+
+    SampleSizeRounding rounding =
+        downsampleStrategy.getSampleSizeRounding(
+            orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
+    if (rounding == null) {
+      throw new IllegalArgumentException("Cannot round with null rounding");
+    }
+
+    int outWidth = round(exactScaleFactor * orientedSourceWidth);
+    int outHeight = round(exactScaleFactor * orientedSourceHeight);
+
+    int widthScaleFactor = orientedSourceWidth / outWidth;
+    int heightScaleFactor = orientedSourceHeight / outHeight;
+
+    // TODO: This isn't really right for both CenterOutside and CenterInside. Consider allowing
+    // DownsampleStrategy to pick, or trying to do something more sophisticated like picking the
+    // scale factor that leads to an exact match.
+    int scaleFactor =
+        rounding == SampleSizeRounding.MEMORY
+            ? Math.max(widthScaleFactor, heightScaleFactor)
+            : Math.min(widthScaleFactor, heightScaleFactor);
+
+    int powerOfTwoSampleSize;
+    // BitmapFactory does not support downsampling wbmp files on platforms <= M. See b/27305903.
+    if (Build.VERSION.SDK_INT <= 23
+        && NO_DOWNSAMPLE_PRE_N_MIME_TYPES.contains(options.outMimeType)) {
+      powerOfTwoSampleSize = 1;
+    } else {
+      powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));
+      if (rounding == SampleSizeRounding.MEMORY
+          && powerOfTwoSampleSize < (1.f / exactScaleFactor)) {
+        powerOfTwoSampleSize = powerOfTwoSampleSize << 1;
+      }
+    }
+
+    // Here we mimic framework logic for determining how inSampleSize division is rounded on various
+    // versions of Android. The logic here has been tested on emulators for Android versions 15-26.
+    // PNG - Always uses floor
+    // JPEG - Always uses ceiling
+    // Webp - Prior to N, always uses floor. At and after N, always uses round.
+    options.inSampleSize = powerOfTwoSampleSize;
+    int powerOfTwoWidth;
+    int powerOfTwoHeight;
+    if (imageType == ImageType.JPEG) {
+      // libjpegturbo can downsample up to a sample size of 8. libjpegturbo uses ceiling to round.
+      // After libjpegturbo's native rounding, skia does a secondary scale using floor
+      // (integer division). Here we replicate that logic.
+      int nativeScaling = Math.min(powerOfTwoSampleSize, 8);
+      powerOfTwoWidth = (int) Math.ceil(orientedSourceWidth / (float) nativeScaling);
+      powerOfTwoHeight = (int) Math.ceil(orientedSourceHeight / (float) nativeScaling);
+      int secondaryScaling = powerOfTwoSampleSize / 8;
+      if (secondaryScaling > 0) {
+        powerOfTwoWidth = powerOfTwoWidth / secondaryScaling;
+        powerOfTwoHeight = powerOfTwoHeight / secondaryScaling;
+      }
+    } else if (imageType == ImageType.PNG || imageType == ImageType.PNG_A) {
+      powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+      powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+    } else if (imageType.isWebp()) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        powerOfTwoWidth = Math.round(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = Math.round(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      } else {
+        powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
+        powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
+      }
+    } else if (orientedSourceWidth % powerOfTwoSampleSize != 0
+        || orientedSourceHeight % powerOfTwoSampleSize != 0) {
+      // If we're not confident the image is in one of our types, fall back to checking the
+      // dimensions again. inJustDecodeBounds decodes do obey inSampleSize.
+      int[] dimensions = getDimensions(imageReader, options, decodeCallbacks, bitmapPool);
+      // Power of two downsampling in BitmapFactory uses a variety of random factors to determine
+      // rounding that we can't reliably replicate for all image formats. Use ceiling here to make
+      // sure that we at least provide a Bitmap that's large enough to fit the content we're going
+      // to load.
+      powerOfTwoWidth = dimensions[0];
+      powerOfTwoHeight = dimensions[1];
+    } else {
+      powerOfTwoWidth = orientedSourceWidth / powerOfTwoSampleSize;
+      powerOfTwoHeight = orientedSourceHeight / powerOfTwoSampleSize;
+    }
+
+    double adjustedScaleFactor =
+        downsampleStrategy.getScaleFactor(
+            powerOfTwoWidth, powerOfTwoHeight, targetWidth, targetHeight);
+
+    // Density scaling is only supported if inBitmap is null prior to KitKat. Avoid setting
+    // densities here so we calculate the final Bitmap size correctly.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      options.inTargetDensity = adjustTargetDensityForError(adjustedScaleFactor);
+      options.inDensity = getDensityMultiplier(adjustedScaleFactor);
+    }
+    if (isScaling(options)) {
+      options.inScaled = true;
+    } else {
+      options.inDensity = options.inTargetDensity = 0;
+    }
+
+    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+      Log.v(
+          TAG,
+          "Calculate scaling"
+              + ", source: ["
+              + sourceWidth
+              + "x"
+              + sourceHeight
+              + "]"
+              + ", degreesToRotate: "
+              + degreesToRotate
+              + ", target: ["
+              + targetWidth
+              + "x"
+              + targetHeight
+              + "]"
+              + ", power of two scaled: ["
+              + powerOfTwoWidth
+              + "x"
+              + powerOfTwoHeight
+              + "]"
+              + ", exact scale factor: "
+              + exactScaleFactor
+              + ", power of 2 sample size: "
+              + powerOfTwoSampleSize
+              + ", adjusted scale factor: "
+              + adjustedScaleFactor
+              + ", target density: "
+              + options.inTargetDensity
+              + ", density: "
+              + options.inDensity);
+    }
+  }

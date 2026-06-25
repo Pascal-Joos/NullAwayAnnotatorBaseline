@@ -1,4 +1,4 @@
-Contributing to NullAwayAnnotator (Inspired by [NullAway](https://github.com/uber/NullAway/blob/master/CONTRIBUTING.md))
+Contributing to NullRepair (Inspired by [NullAway](https://github.com/uber/NullAway/blob/master/CONTRIBUTING.md))
 =======================
 
 We welcome contributions of all kinds and sizes. This includes everything from from simple bug reports to large features.

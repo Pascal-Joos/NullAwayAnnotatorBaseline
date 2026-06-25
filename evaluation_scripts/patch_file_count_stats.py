@@ -7,19 +7,20 @@ Outcomes tracked:
   - resolved_no_fail : resolved + FAILING_TESTS == false
 """
 
+import argparse
 import csv
 import os
 import subprocess
 from collections import Counter, defaultdict
 
 # ── Config ─────────────────────────────────────────────────────────────────
-LOG_ROOT        = os.path.expanduser("~/nullrepair_log_files/logs")
-BENCHMARK_ROOT  = os.path.expanduser("~/nullness-benchmarks")
+LOG_ROOT        = "/home/vscode/NullRepair/evaluation_data/logs"
+BENCHMARK_ROOT  = "/home/vscode/NullRepair/benchmarks"
 
 APPROACHES = {
-    "advanced":       "agentic-advanced-2-evaluation-run-gpt5.1",
-    "basic":          "agentic-basic-2-evaluation-run-gpt5.1",
-    "agent_baseline": "agentic-agent_baseline-2-evaluation-run-gpt5.1",
+    "advanced":       "advanced-evaluation-run-gpt5.1",
+    "basic":          "basic-evaluation-run-gpt5.1",
+    "agent_baseline": "agent_baseline-evaluation-run-gpt5.1",
 }
 APPROACH_LABELS = {
     "advanced":       "Advanced",
@@ -149,10 +150,13 @@ for key, label in [
 
 
 # ── CSV export ─────────────────────────────────────────────────────────────
-out_csv = os.path.join(
+_default_csv = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "patch_file_count_stats.csv",
+    "../evaluation_data/evaluation_results/per_patch/patch_file_count_stats.csv"
 )
+_parser = argparse.ArgumentParser(add_help=False)
+_parser.add_argument("--output", default=_default_csv)
+out_csv = _parser.parse_known_args()[0].output
 
 all_file_counts = sorted(
     set(

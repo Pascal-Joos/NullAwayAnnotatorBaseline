@@ -131,7 +131,12 @@ public class EffectiveMethodRecordTest
             "                   });",
             "   }",
             "}")
-        .setExpectedOutputs()
+        .setExpectedOutputs(
+            new EffectiveMethodRecordDisplay(
+                "edu.ucr.Foo",
+                "getTimer(java.lang.String,java.lang.String,java.lang.String[])",
+                "name",
+                "1"))
         .doTest();
   }
 

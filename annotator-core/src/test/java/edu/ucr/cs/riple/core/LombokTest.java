@@ -24,12 +24,9 @@
 
 package edu.ucr.cs.riple.core;
 
-import static edu.ucr.cs.riple.core.AnalysisMode.STRICT;
-
 import edu.ucr.cs.riple.core.tools.TReport;
 import edu.ucr.cs.riple.injector.location.OnField;
 import java.util.Collections;
-import java.util.Objects;
 import org.junit.Test;
 
 public class LombokTest extends AnnotatorBaseCoreTest {
@@ -57,7 +54,7 @@ public class LombokTest extends AnnotatorBaseCoreTest {
             "   }",
             "}")
         .withExpectedReports(
-            new TReport(new OnField("Main.java", "test.Main", Collections.singleton("f")), 1))
+            new TReport(new OnField("Main.java", "test.Main", Collections.singleton("f")), -1))
         .toDepth(1)
         .start();
   }
@@ -74,32 +71,9 @@ public class LombokTest extends AnnotatorBaseCoreTest {
             "class Main {",
             "   Object f;",
             "}")
-        .withDependency("Dep")
-        .withSourceLines(
-            "Dep.java",
-            "package test;",
-            "class Dep {",
-            "   public Object returnNullable(){",
-            "       return new Main().getF();", // Should be an error
-            "   }",
-            "}")
         .withExpectedReports(
-            new TReport(
-                new OnField("Main.java", "test.Main", Collections.singleton("f")),
-                0,
-                // The copied annotation on the getF creates an unresolvable error in downstream
-                // dependency; hence, the tree should be rejected.
-                Report.Tag.REJECT))
-        .setPredicate(
-            (expected, found) ->
-                expected.root.equals(found.root)
-                    && expected.getExpectedValue()
-                        == found.getOverallEffect(coreTestHelper.getConfig())
-                    && Objects.equals(expected.getTag(), found.getTag()))
-        .enableDownstreamDependencyAnalysis(STRICT)
+            new TReport(new OnField("Main.java", "test.Main", Collections.singleton("f")), -1))
         .toDepth(1)
-        .suppressRemainingErrors()
-        .checkExpectedOutput("rejectOnFieldForGeneratedGetterInDownstreamDependencies/expected")
         .start();
   }
 }

@@ -12,7 +12,7 @@ class BenchmarkStats:
     total_target_errors: int = 0
     generated_patches: int = 0
     error_introducing_patches: int = 0
-    resolving_patches: int = 0
+    resolving_patches_incl_new_errors: int = 0
     resolving_patches_and_no_new_errors: int = 0
     trigger_new_error_patches: int = 0
     total_execution_time_sec: float = 0.0
@@ -34,7 +34,7 @@ class BenchmarkStats:
             self.error_introducing_patches += 1
 
         if patch.get("resolves_error"):
-            self.resolving_patches += 1
+            self.resolving_patches_incl_new_errors += 1
 
         if patch.get("resolves_error_and_no_new_errors"):
             self.resolving_patches_and_no_new_errors += 1
@@ -52,20 +52,33 @@ class BenchmarkStats:
         self.total_monetary_cost += float(patch.get("monetary_cost", 0.0))
 
     def finalize(self, config_dir: str) -> Dict:
-        data = asdict(self)
+        # Special handling for litiengine, where in combined mode some errors were skipped 
+        # as they were already fixed previously.
+        if self.project == "litiengine":
+            self.total_target_errors = 152
 
-        if self.total_target_errors > 0:
-            data["avg_execution_time_sec"] = self.total_execution_time_sec / self.total_target_errors
-            data["avg_agent_cycles"] = self.total_agent_cycles / self.total_target_errors
-            data["avg_tokens"] = self.total_tokens / self.total_target_errors
-            data["avg_uncached_input_tokens"] = self.uncached_input_tokens / self.total_target_errors
-            data["avg_cached_input_tokens"] = self.cached_input_tokens / self.total_target_errors
-            data["avg_completion_tokens"] = self.completion_tokens / self.total_target_errors
-            data["avg_monetary_cost"] = self.total_monetary_cost / self.total_target_errors
+        data = asdict(self)
+        total_target_errors = data["total_target_errors"]
+
+        # Paper Table 2 G column: generated patches without compilation errors.
+        data["generated_patches_no_compilation_errors"] = (
+            data["generated_patches"] - data["error_introducing_patches"]
+        )
+
+        if total_target_errors > 0:
+            data["avg_execution_time_sec"] = self.total_execution_time_sec / total_target_errors
+            data["avg_agent_cycles"] = self.total_agent_cycles / total_target_errors
+            data["avg_tokens"] = self.total_tokens / total_target_errors
+            data["avg_uncached_input_tokens"] = self.uncached_input_tokens / total_target_errors
+            data["avg_cached_input_tokens"] = self.cached_input_tokens / total_target_errors
+            data["avg_completion_tokens"] = self.completion_tokens / total_target_errors
+            data["avg_monetary_cost"] = self.total_monetary_cost / total_target_errors
         else:
             data["avg_execution_time_sec"] = 0.0
             data["avg_agent_cycles"] = 0.0
             data["avg_tokens"] = 0.0
+            data["avg_uncached_input_tokens"] = 0.0
+            data["avg_cached_input_tokens"] = 0.0
             data["avg_completion_tokens"] = 0.0
             data["avg_monetary_cost"] = 0.0
 
@@ -111,6 +124,11 @@ class BenchmarkStatsCombined(BenchmarkStats):
     def finalize(self, config_dir: str) -> Dict:
         finalized_stats = super().finalize(config_dir)
         
+        # Paper Table 2 combined R column: total resolved target errors when selectively applying.
+        finalized_stats["resolved_target_errors"] = (
+            finalized_stats["total_target_errors"] - finalized_stats["remaining_errors"]
+        )
+
         if self.total_target_errors > 0:
             finalized_stats["percentage_error_reduction"] = ((self.total_target_errors - finalized_stats["remaining_errors"]) / self.total_target_errors) * 100.0
         else:
@@ -357,7 +375,7 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
         total_stats.total_target_errors += s.total_target_errors
         total_stats.generated_patches += s.generated_patches
         total_stats.error_introducing_patches += s.error_introducing_patches
-        total_stats.resolving_patches += s.resolving_patches
+        total_stats.resolving_patches_incl_new_errors += s.resolving_patches_incl_new_errors
         total_stats.resolving_patches_and_no_new_errors += s.resolving_patches_and_no_new_errors
         total_stats.trigger_new_error_patches += s.trigger_new_error_patches
 
@@ -384,15 +402,25 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
         fieldnames = [
             "project",
             "total_target_errors",
+            # Paper Table 2: G = generated_patches_no_compilation_errors
+            #                    (= generated_patches - error_introducing_patches)
             "generated_patches",
             "error_introducing_patches",
-            "resolving_patches",
+            "generated_patches_no_compilation_errors",
+            # Paper Table 2: R = resolving_patches_and_no_new_errors
+            #                    (NOT resolving_patches_incl_new_errors)
+            "resolving_patches_incl_new_errors",
             "resolving_patches_and_no_new_errors",
             "percentage_resolving_patches_and_no_new_errors",
             "trigger_new_error_patches",
             "failing_test_patches",
             "resolving_patches_no_new_errors_no_failing_tests",
             "percentage_failing_test_patches",
+            # Paper Table 4 efficiency metrics (per-patch files):
+            #   Time (min/error)  = avg_execution_time_sec / 60
+            #   Prompts (per error) = avg_agent_cycles  (mini-SWE-agent: agent cycles)
+            #   Tokens (per error)  = avg_tokens
+            #   Cost (per error)    = avg_monetary_cost
             "total_execution_time_sec",
             "avg_execution_time_sec",
             "full_scaffold_execution_time_in_sec",
@@ -413,15 +441,22 @@ def write_stats_tsv(output_path: str, stats_per_benchmark: List[BenchmarkStats],
         fieldnames = [
             "project",
             "total_target_errors",
+            # Paper Table 2 combined: G = generated_patches_no_compilation_errors
             "generated_patches",
             "error_introducing_patches",
-            "resolving_patches",
+            "generated_patches_no_compilation_errors",
+            # Paper Table 2 combined: R = resolved_target_errors
+            #                            (= total_target_errors - remaining_errors)
+            "resolving_patches_incl_new_errors",
             "resolving_patches_and_no_new_errors",
             "trigger_new_error_patches",
             "remaining_errors",
+            "resolved_target_errors",
             "percentage_error_reduction",
+            # Paper Table 3: total_test_failures per project
             "total_test_failures",
             "percentage_failed_tests_from_total_tests",
+            # Paper Table 4 efficiency metrics: same derivation as per-patch (see above)
             "total_execution_time_sec",
             "avg_execution_time_sec",
             "full_scaffold_execution_time_in_sec",
@@ -453,13 +488,13 @@ def main() -> None:
     parser.add_argument(
         "--log-root",
         type=str,
-        default="/home/vscode/nullrepair_log_files/logs",
+        default="/home/vscode/NullRepair/evaluation_data/logs",
         help="Root directory containing benchmark subfolders (default: %(default)s)",
     )
     parser.add_argument(
         "--config-subdir",
         type=str,
-        default="agentic-agent_baseline-2",
+        default="agent_baseline-3",
         help="Subdirectory name for the specific configuration to analyze (default: %(default)s)",
     )
     parser.add_argument(

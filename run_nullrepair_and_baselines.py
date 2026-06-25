@@ -15,7 +15,7 @@ BENCHMARKS = [
               "wala-util", 
               "zuul"
               ]
-ANNOTATOR_JAR = "./nullrepair.jar"
+ANNOTATOR_JAR = "./annotator-core/build/libs/annotator-core-1.3.16-SNAPSHOT.jar"
 
 def prepare(benchmark):
     return

@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,6 +60,8 @@ public class Main {
   public static final int VERSION = 3;
 
   public static final int BUILD_VERSION = 6;
+
+  public static final Path ROOT_PATH = Paths.get("/home/vscode/NullRepair");
 
   public static class Benchmark {
     public final String annotatedPackage;
@@ -195,6 +198,14 @@ public class Main {
       }
     }
 
+    boolean selectedErrorIdsProvided = cmd.hasOption("selectedErrorIds");
+    if (selectedErrorIdsProvided && continueRun) {
+      System.err.println("Error: --selectedErrorIds cannot be combined with --continueRunAtError");
+      printHelp(options);
+      System.exit(1);
+      return;
+    }
+
     System.clearProperty("ANNOTATOR_TEST_MODE");
 
     System.out.println(
@@ -206,9 +217,12 @@ public class Main {
             + (combined ? " Combined mode is ON." : ""));
     Benchmark benchmark = benchmarks.get(benchmarkName);
     if (benchmark == null) {
-      throw new IllegalArgumentException("Unknown benchmark: " + benchmarkName);
+      System.err.println("Error: Unknown benchmark: " + benchmarkName);
+      printHelp(options);
+      System.exit(1);
+      return;
     }
-    String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
+    Path PROJECT_PATH = ROOT_PATH.resolve("benchmarks").resolve(benchmark.path);
     deleteOutDir(benchmark);
 
     String fullTestCommand =
@@ -249,16 +263,18 @@ public class Main {
       // "-rboserr", // redirect build output stream and error stream
       verbose ? "-rboserr" : "",
       "--depth",
-      "6",
+      cmd.getOptionValue("depth", "6"),
       pushCommits ? "--pushCommits" : "",
       continueRun ? "--continueRunAtError" : "",
-      continueRun ? String.valueOf(continueRunAtError) : ""
+      continueRun ? String.valueOf(continueRunAtError) : "",
+      selectedErrorIdsProvided ? "--selectedErrorIds" : "",
+      selectedErrorIdsProvided ? cmd.getOptionValue("selectedErrorIds") : ""
     };
 
     Config config = new Config(argsArray);
     config.benchmarkName = benchmarkName;
-    config.benchmarkPath = Paths.get(PROJECT_PATH);
-    config.initialErrorsLogPath = Paths.get(PROJECT_PATH, "initial_build_output.log");
+    config.benchmarkPath = PROJECT_PATH;
+    config.initialErrorsLogPath = PROJECT_PATH.resolve("initial_build_output.log");
     config.combined = combined;
     configureLogging(config);
 
@@ -268,10 +284,16 @@ public class Main {
     try (GitUtility git = GitUtility.instance(config)) {
       git.resetHard();
       if (!config.continueRun) {
-        git.safePull();
+        // In no push mode, we can skip pull and delete remote branch steps, to not need signed-in
+        // GitHub user.
+        if (pushCommits) {
+          git.safePull();
+        }
         git.checkoutBranch("nimak/auto-code-fix");
         git.resetHard();
-        git.pull();
+        if (pushCommits) {
+          git.pull();
+        }
         git.deleteLocalBranch(config.branchName());
         if (pushCommits) {
           git.deleteRemoteBranch(config.branchName());
@@ -306,9 +328,9 @@ public class Main {
   }
 
   public static void deleteOutDir(Benchmark benchmark) {
-    String PROJECT_PATH = "/home/vscode/nullness-benchmarks/" + benchmark.path;
+    Path PROJECT_PATH = ROOT_PATH.resolve("benchmarks").resolve(benchmark.path);
     // delete dir
-    Path outDir = Paths.get(PROJECT_PATH + "/annotator-out/0");
+    Path outDir = PROJECT_PATH.resolve("annotator-out").resolve("0");
     if (outDir.toFile().exists()) {
       try {
         Files.walkFileTree(
@@ -340,25 +362,25 @@ public class Main {
             + config.benchmarkName
             + ", branch: "
             + config.branchName());
-    Path root =
+    Path log_root =
         Paths.get(
-            System.getProperty("user.home"),
-            "nullrepair_log_files",
+            ROOT_PATH.toString(),
+            "evaluation_data",
             "logs",
             config.benchmarkName,
             config.branchName().split("/")[1]
                 + (config.continueRun ? "_continueAtError_" + config.continueRunAtError : ""));
-    System.out.println("Root path for logs: " + root);
+    System.out.println("Root path for logs: " + log_root);
     // Delete log
     try {
-      if (Files.exists(root)) {
-        MoreFiles.deleteRecursively(root, RecursiveDeleteOption.ALLOW_INSECURE);
+      if (Files.exists(log_root)) {
+        MoreFiles.deleteRecursively(log_root, RecursiveDeleteOption.ALLOW_INSECURE);
       }
-      Files.createDirectories(root);
+      Files.createDirectories(log_root);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    String filePath = root.resolve("app.log").toString();
+    String filePath = log_root.resolve("app.log").toString();
 
     LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
     context.reset();
@@ -386,13 +408,13 @@ public class Main {
         (thread, throwable) -> {
           rootLogger.error("Uncaught exception in thread: {}", thread.getName(), throwable);
         });
-    config.logPath = root.resolve("app.log");
-    config.metricsPath = root.resolve("metrics.tsv");
-    config.commitHashPath = root.resolve("commits.tsv");
-    config.timerPath = root.resolve("timers.tsv");
-    config.combinedTestFailuresPath = root.resolve("total-test-failures.tsv");
+    config.logPath = log_root.resolve("app.log");
+    config.metricsPath = log_root.resolve("metrics.tsv");
+    config.commitHashPath = log_root.resolve("commits.tsv");
+    config.timerPath = log_root.resolve("timers.tsv");
+    config.combinedTestFailuresPath = log_root.resolve("total-test-failures.tsv");
     // or WARN if too noisy
-    return root;
+    return log_root;
   }
 
   private static Options createOptions() {
@@ -433,6 +455,27 @@ public class Main {
             .option("p")
             .desc(
                 "Push created commits to the target benchmark repositories. Deactivated by default. Requires write access to the repos.")
+            .build());
+
+    // If only to be run on selected error IDs (e.g., for a quick run on a subset of errors)
+    options.addOption(
+        Option.builder()
+            .longOpt("selectedErrorIds")
+            .option("s")
+            .hasArg()
+            .argName("ids")
+            .type(ArrayList.class)
+            .desc(
+                "Comma-separated list of error IDs to run on (e.g., 1,2,3). This must not be combined with --continueRunAtError.")
+            .build());
+
+    options.addOption(
+        Option.builder()
+            .longOpt("depth")
+            .option("d")
+            .hasArg()
+            .argName("n")
+            .desc("Analysis depth for context building (default: 6)")
             .build());
 
     return options;

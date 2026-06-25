@@ -26,6 +26,8 @@ package edu.ucr.cs.riple.core;
 
 import edu.ucr.cs.riple.core.tools.CoreTestHelper;
 import edu.ucr.cs.riple.core.tools.Utility;
+import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -69,10 +71,22 @@ public abstract class AnnotatorBaseCoreTest {
     Path pathToUnitTestDir =
         Utility.getPathOfResource(templates.resolve(projectTemplate).toString());
     Path repositoryDirectory = Paths.get(System.getProperty("user.dir")).getParent();
+    FileFilter excludeLargeUnneededDirs =
+        (File f) -> {
+          String name = f.getName();
+          return !name.equals(".venv")
+              && !name.equals("benchmarks")
+              && !name.equals("evaluation_data")
+              && !name.equals(".git")
+              && !name.equals("mini-swe-agent-for-nullaway-codefix")
+              && !name.equals("evaluation_scripts");
+        };
     try {
       // Create a separate library models loader to avoid races between unit tests.
       FileUtils.copyDirectory(
-          repositoryDirectory.toFile(), outDirPath.resolve("Annotator").toFile());
+          repositoryDirectory.toFile(),
+          outDirPath.resolve("Annotator").toFile(),
+          excludeLargeUnneededDirs);
       FileUtils.copyDirectory(pathToUnitTestDir.toFile(), unitTestProjectPath.toFile());
       // Copy using gradle wrappers.
       FileUtils.copyFile(

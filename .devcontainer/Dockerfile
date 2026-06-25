@@ -1,5 +1,5 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu
-RUN apt-get update && apt-get install -y python3 python3-pip python3-venv git openjdk-11-jdk-headless openjdk-17-jdk-headless openjdk-17-jre openjdk-17-jdk android-sdk wget curl xvfb
+FROM mcr.microsoft.com/devcontainers/base:noble
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv python-is-python3 git openjdk-11-jdk-headless openjdk-17-jdk-headless openjdk-17-jre openjdk-17-jdk android-sdk wget curl xvfb
 
 
 

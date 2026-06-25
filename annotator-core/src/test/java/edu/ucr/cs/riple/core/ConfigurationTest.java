@@ -95,6 +95,7 @@ public class ConfigurationTest {
         new ArrayList<>(
             List.of(
                 new CLIFlagWithValue("bc", "./gradlew compileJava"),
+                new CLIFlagWithValue("tc", "./gradlew test"),
                 new CLIFlagWithValue("cp", testDir.resolve("paths.tsv")),
                 new CLIFlagWithValue("i", "edu.ucr.Initializer"),
                 new CLIFlagWithValue("d", testDir),
